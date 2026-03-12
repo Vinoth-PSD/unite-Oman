@@ -12,20 +12,17 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.post("/login", response_model=TokenOut)
 async def admin_login(data: AdminLogin):
-    try:
-        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
-        res = client.auth.sign_in_with_password({"email": data.email, "password": data.password})
-        user = res.user
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        # Check admin role from metadata
-        role = user.user_metadata.get("role", "user")
-        if role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access required")
-        token = create_access_token({"sub": str(user.id), "email": user.email, "role": "admin"})
+    
+    # Temporary static admin login
+    if data.email == "admin@gmail.com" and data.password == "12345678":
+        token = create_access_token({
+            "sub": "admin",
+            "email": data.email,
+            "role": "admin"
+        })
         return TokenOut(access_token=token)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Authentication failed")
+
+    raise HTTPException(status_code=401, detail="Invalid credentials123456")
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_stats(db: AsyncSession = Depends(get_db), _: dict = Depends(require_admin)):
