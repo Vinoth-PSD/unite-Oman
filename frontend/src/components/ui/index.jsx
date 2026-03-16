@@ -1,6 +1,36 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import BookingModal from './BookingModal'
+import { 
+  Utensils, Car, ShoppingBag, Stethoscope, Building2, Laptop, Briefcase, Wrench, Sparkles, Phone,
+  MapPin, Landmark, Palmtree, Mountain, Waves, Compass, CloudRain
+} from 'lucide-react'
+
+const CATEGORY_ICONS = {
+  'restaurants': Utensils,
+  'automotive': Car,
+  'retail': ShoppingBag,
+  'health': Stethoscope,
+  'real-estate': Building2,
+  'it-software': Laptop,
+  'services': Wrench,
+  'beauty': Sparkles,
+  'telecom': Phone,
+}
+
+const GOVERNORATE_ICONS = {
+  'muscat': Building2,
+  'dhofar': Palmtree,
+  'musandam': Waves,
+  'al-buraymi': Landmark,
+  'ad-dakhiliyah': Mountain,
+  'al-batinah-north': Compass,
+  'al-batinah-south': Compass,
+  'ash-sharqiyah-north': CloudRain,
+  'ash-sharqiyah-south': Waves,
+  'adh-dhahirah': Mountain,
+  'al-wusta': Palmtree,
+}
 
 // ── BusinessCard ──────────────────────────────────────────────
 export function BusinessCard({ business }) {
@@ -19,7 +49,12 @@ export function BusinessCard({ business }) {
           <div className="h-44 bg-gray-100 relative overflow-hidden">
             {cover_image_url
               ? <img src={cover_image_url} alt={name_en} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              : <div className="w-full h-full flex items-center justify-center text-5xl" style={{ background: 'linear-gradient(135deg,#EDE5F7,#FCE8F1)' }}>{category?.icon || '🏢'}</div>
+              : <div className="w-full h-full flex items-center justify-center text-ink/20" style={{ background: 'linear-gradient(135deg,#EDE5F7,#FCE8F1)' }}>
+                  {(() => {
+                    const CatIcon = category ? (CATEGORY_ICONS[category.slug] || Briefcase) : Briefcase;
+                    return <CatIcon size={48} strokeWidth={1.5} />
+                  })()}
+                </div>
             }
             <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
               {is_verified && <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-green-600/90 text-white">✓ Verified</span>}
@@ -36,7 +71,15 @@ export function BusinessCard({ business }) {
         </Link>
         <div className="p-4 flex flex-col flex-1">
           <Link to={`/business/${slug}`} className="flex-1">
-            {category && <p className="text-[10px] font-bold tracking-widest uppercase mb-1 brand-text">{category.icon} {category.name_en}</p>}
+            {category && (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase mb-1 brand-text">
+                {(() => {
+                  const CatIcon = CATEGORY_ICONS[category.slug] || Briefcase;
+                  return <CatIcon size={12} strokeWidth={2.5} />
+                })()}
+                {category.name_en}
+              </div>
+            )}
             <h3 className="text-base font-bold text-ink mb-1 leading-snug">{name_en}</h3>
             {rating_count > 0 && (
               <div className="flex items-center gap-1.5 mb-2">
@@ -68,13 +111,15 @@ export function BusinessCard({ business }) {
 const CAT_COLORS = ['#FCE8F1','#DBEAFE','#FEF3C7','#D1FAE5','#FEF9C3','#EDE5F7','#CFFAFE','#FEF0EA','#FFE4E6','#E0E7FF','#CCFBF1','#ECFCCB']
 
 export function CategoryIconCard({ category, index = 0 }) {
-  const { name_en, slug, icon, business_count } = category
+  const { name_en, slug, business_count } = category
+  const Icon = CATEGORY_ICONS[slug] || Briefcase
+
   return (
     <Link to={`/businesses?category=${slug}`}
       className="group bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-3 group-hover:scale-110 transition-transform duration-300"
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
         style={{ background: CAT_COLORS[index % CAT_COLORS.length] }}>
-        {icon}
+        <Icon size={28} strokeWidth={1.5} />
       </div>
       <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
       <p className="text-xs text-gray-400 font-medium">{business_count} businesses</p>
@@ -84,7 +129,9 @@ export function CategoryIconCard({ category, index = 0 }) {
 
 // ── CategoryCard (image bg version) ──────────────────────────
 export function CategoryCard({ category, large = false }) {
-  const { name_en, name_ar, slug, icon, cover_image_url, business_count } = category
+  const { name_en, name_ar, slug, cover_image_url, business_count } = category
+  const Icon = CATEGORY_ICONS[slug] || Briefcase
+
   return (
     <Link to={`/businesses?category=${slug}`}
       className={`group relative rounded-2xl overflow-hidden cursor-pointer block transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${large ? 'min-h-[240px]' : 'aspect-[4/3]'}`}>
@@ -93,11 +140,32 @@ export function CategoryCard({ category, large = false }) {
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background:'rgba(232,49,122,.08)' }} />
       <button className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xs group-hover:bg-pink group-hover:border-pink transition-all">↗</button>
       <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-        <div className={`bg-white/15 backdrop-blur-md border border-white/20 rounded-lg flex items-center justify-center mb-2 ${large ? 'w-11 h-11 text-xl' : 'w-9 h-9 text-base'}`}>{icon}</div>
+        <div className={`bg-white/15 backdrop-blur-md border border-white/20 rounded-lg flex items-center justify-center mb-2 text-white ${large ? 'w-11 h-11' : 'w-9 h-9'}`}>
+          <Icon size={large ? 20 : 16} strokeWidth={1.5} />
+        </div>
         <h3 className={`font-bold text-white leading-tight mb-0.5 ${large ? 'text-xl' : 'text-sm'}`}>{name_en}</h3>
         {name_ar && <p className="text-xs text-white/45 mb-1">{name_ar}</p>}
         <p className="text-xs text-white/60 font-semibold">{business_count}+ businesses</p>
       </div>
+    </Link>
+  )
+}
+
+// ── GovernorateIconCard (for Governorates page) ───────────
+export function GovernorateIconCard({ governorate, index = 0 }) {
+  const { name_en, name_ar, slug, business_count } = governorate
+  const Icon = GOVERNORATE_ICONS[slug] || MapPin
+
+  return (
+    <Link to={`/businesses?governorate=${slug}`}
+      className="group bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
+        style={{ background: CAT_COLORS[index % CAT_COLORS.length] }}>
+        <Icon size={28} strokeWidth={1.5} />
+      </div>
+      <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
+      <p className="text-[10px] text-purple font-bold tracking-tight mb-1 uppercase opacity-60">{name_ar}</p>
+      <p className="text-xs text-gray-400 font-medium">{business_count || 0} businesses</p>
     </Link>
   )
 }

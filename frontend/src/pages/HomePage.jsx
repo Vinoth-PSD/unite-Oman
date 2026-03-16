@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, MapPin, ChevronRight } from 'lucide-react'
 import { businessApi, categoryApi, governorateApi } from '@/lib/api'
-import { BusinessCard, CategoryCard, CategoryIconCard, Spinner } from '@/components/ui'
+import { BusinessCard, CategoryCard, CategoryIconCard, GovernorateIconCard, Spinner } from '@/components/ui'
 
 // ── Hero ──────────────────────────────────────────────────────
 function Hero() {
@@ -236,15 +236,8 @@ function GovernoratesSection() {
           <a href="/governorates" className="text-sm font-bold brand-text hidden md:flex items-center gap-1.5 hover:gap-3 transition-all">View all →</a>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {govs.map(g => (
-            <button key={g.id} onClick={() => navigate(`/businesses?governorate=${g.slug}`)}
-              className="group bg-white border-[1.5px] border-gray-100 rounded-2xl p-5 text-center hover:-translate-y-1 hover:border-pink hover:shadow-lg transition-all duration-300 relative overflow-hidden">
-              <div className="absolute bottom-0 left-0 right-0 h-[3px] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" style={{ background: 'linear-gradient(90deg,#E8317A,#5B2D8E)' }} />
-              <span className="text-2xl mb-2 block">{g.emoji}</span>
-              <div className="text-sm font-bold text-ink mb-0.5">{g.name_en}</div>
-              <div className="text-xs font-semibold text-purple mb-1">{g.name_ar}</div>
-              <div className="text-[11px] text-gray-400 font-semibold">{g.business_count?.toLocaleString()}+ businesses</div>
-            </button>
+          {govs.map((g, i) => (
+            <GovernorateIconCard key={g.id} governorate={g} index={i} />
           ))}
         </div>
       </div>

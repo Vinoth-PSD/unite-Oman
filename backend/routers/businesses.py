@@ -3,24 +3,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_, desc, asc
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
+import uuid
 from uuid import UUID
 from slugify import slugify
 
 from core.database import get_db
 from core.auth import get_current_user, require_admin
-from models.models import Business, Category, Governorate, BusinessStatus, ListingType
+from models.models import Business, Category, Governorate, BusinessStatus, ListingType, Service
 from models.schemas import (
     BusinessCard, BusinessDetail, BusinessCreate,
-    BusinessUpdate, AdminBusinessUpdate, PaginatedBusinesses
+    BusinessUpdate, AdminBusinessUpdate, PaginatedBusinesses, VendorStats
 )
+from core.sync import update_business_counts
 
 router = APIRouter(prefix="/api/businesses", tags=["businesses"])
 
-def load_relations(q):
-    return q.options(
+def load_relations(q, include_owner=False):
+    opts = [
         selectinload(Business.category),
         selectinload(Business.governorate)
-    )
+    ]
+    if include_owner:
+        opts.append(selectinload(Business.owner))
+    return q.options(*opts)
 
 # ── Public: List & Search ─────────────────────────────────────
 @router.get("", response_model=PaginatedBusinesses)
@@ -99,6 +104,57 @@ async def get_featured(db: AsyncSession = Depends(get_db), limit: int = 6):
     result = await db.execute(q)
     return result.scalars().all()
 
+# ── Auth: Get own businesses ──────────────────────────────────
+@router.get("/me", response_model=List[BusinessCard])
+async def get_my_businesses(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    q = select(Business).where(Business.owner_id == current_user["sub"])
+    q = load_relations(q)
+    result = await db.execute(q)
+    return result.scalars().all()
+
+@router.get("/me/stats", response_model=VendorStats)
+async def get_my_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    # Get all businesses owned by the user
+    q = select(Business).where(Business.owner_id == current_user["sub"])
+    result = await db.execute(q)
+    businesses = result.scalars().all()
+    
+    if not businesses:
+        return VendorStats(
+            total_reviews=0,
+            avg_rating=0.0,
+            total_services=0,
+            total_views=0
+        )
+    
+    total_reviews = sum(b.rating_count for b in businesses if b.rating_count is not None)
+    total_views = sum(b.view_count for b in businesses if b.view_count is not None)
+    
+    # Calculate weighted average rating
+    if total_reviews > 0:
+        total_rating_sum = sum(float(b.rating_avg or 0) * (b.rating_count or 0) for b in businesses)
+        avg_rating = total_rating_sum / total_reviews
+    else:
+        avg_rating = 0.0
+        
+    # Get total services count
+    business_ids = [b.id for b in businesses]
+    service_count_q = select(func.count(Service.id)).where(Service.business_id.in_(business_ids))
+    total_services = (await db.execute(service_count_q)).scalar() or 0
+    
+    return VendorStats(
+        total_reviews=total_reviews,
+        avg_rating=round(avg_rating, 2),
+        total_services=total_services,
+        total_views=total_views
+    )
+
 # ── Public: Get by slug ───────────────────────────────────────
 @router.get("/{slug}", response_model=BusinessDetail)
 async def get_business(slug: str, db: AsyncSession = Depends(get_db)):
@@ -125,17 +181,27 @@ async def create_business(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    slug = slugify(data.name_en)
+    slug = slugify(data.name_en.strip())
     # Ensure unique slug
     existing = await db.execute(select(Business).where(Business.slug == slug))
     if existing.scalar_one_or_none():
-        slug = f"{slug}-{str(UUID(int=0))[:8]}"
+        slug = f"{slug}-{uuid.uuid4().hex[:8]}"
 
     business = Business(**data.model_dump(), slug=slug, owner_id=current_user["sub"])
     db.add(business)
     await db.commit()
-    await db.refresh(business)
-    return business
+    
+    # Update counts if active
+    if business.status == BusinessStatus.active:
+        await update_business_counts(db, category_id=business.category_id, governorate_id=business.governorate_id)
+        await db.commit()
+
+    # Reload with relations for the response model
+    q = select(Business).where(Business.id == business.id)
+    q = load_relations(q)
+    result = await db.execute(q)
+    return result.scalar_one()
+
 
 # ── Auth: Update own business ─────────────────────────────────
 @router.patch("/{business_id}", response_model=BusinessCard)
@@ -145,19 +211,61 @@ async def update_business(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    with open("/tmp/debug_patch.log", "a") as f:
+        f.write(f"\n[PATCH START] {business_id} by {current_user['sub']}\n")
+        f.write(f"[DATA] {data.model_dump(exclude_unset=True)}\n")
+        
     result = await db.execute(select(Business).where(Business.id == business_id))
     business = result.scalar_one_or_none()
+    
     if not business:
+        with open("/tmp/debug_patch.log", "a") as f:
+            f.write(f"[FAIL] Business {business_id} not found\n")
         raise HTTPException(status_code=404, detail="Not found")
+        
     if str(business.owner_id) != current_user["sub"] and current_user.get("role") != "admin":
+        with open("/tmp/debug_patch.log", "a") as f:
+            f.write(f"[FAIL] Auth mismatch: owner={business.owner_id}, user={current_user['sub']}\n")
         raise HTTPException(status_code=403, detail="Not authorized")
+        
+    # Store old values for count updates
+    old_cat = business.category_id
+    old_gov = business.governorate_id
+    old_status = business.status
+
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(business, k, v)
-    await db.commit()
-    await db.refresh(business)
-    return business
+        
+    try:
+        await db.commit()
 
-# ── Admin: Full update ────────────────────────────────────────
+        # Update counts if status or relations changed
+        if business.status == BusinessStatus.active or old_status == BusinessStatus.active:
+            await update_business_counts(db, category_id=old_cat, governorate_id=old_gov)
+            if business.category_id != old_cat or business.governorate_id != old_gov:
+                await update_business_counts(db, category_id=business.category_id, governorate_id=business.governorate_id)
+            await db.commit()
+        with open("/tmp/debug_patch.log", "a") as f:
+            f.write("[DB COMMIT SUCCESS]\n")
+            
+        # Reload with relations
+        q = select(Business).where(Business.id == business_id)
+        q = load_relations(q)
+        result = await db.execute(q)
+        refresh_business = result.scalar_one()
+        
+        with open("/tmp/debug_patch.log", "a") as f:
+            f.write(f"[RELOAD SUCCESS] Category: {refresh_business.category.name_en if refresh_business.category else 'None'}\n")
+            f.write(f"[RELOAD SUCCESS] Governorate: {refresh_business.governorate.name_en if refresh_business.governorate else 'None'}\n")
+            f.write("[PATCH SUCCESS - RETURNING]\n")
+            
+        return refresh_business
+    except Exception as e:
+        await db.rollback()
+        with open("/tmp/debug_patch.log", "a") as f:
+            f.write(f"[EXCEPTION] {str(e)}\n")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.patch("/admin/{business_id}", response_model=BusinessCard)
 async def admin_update_business(
     business_id: UUID,
@@ -165,15 +273,31 @@ async def admin_update_business(
     db: AsyncSession = Depends(get_db),
     _: dict = Depends(require_admin)
 ):
-    result = await db.execute(select(Business).where(Business.id == business_id))
+    result = await db.execute(
+        select(Business).where(Business.id == business_id).options(selectinload(Business.owner))
+    )
     business = result.scalar_one_or_none()
     if not business:
         raise HTTPException(status_code=404, detail="Not found")
+    
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(business, k, v)
+    
+    # User activation logic
+    if business.status == BusinessStatus.active and business.owner:
+        business.owner.is_active = True
+        
     await db.commit()
-    await db.refresh(business)
-    return business
+    
+    # Update counts after status change
+    await update_business_counts(db, category_id=business.category_id, governorate_id=business.governorate_id)
+    await db.commit()
+    
+    # Reload with relations for the response model
+    q = select(Business).where(Business.id == business.id)
+    q = load_relations(q)
+    result = await db.execute(q)
+    return result.scalar_one()
 
 # ── Admin: Delete ─────────────────────────────────────────────
 @router.delete("/admin/{business_id}", status_code=204)
@@ -186,8 +310,17 @@ async def delete_business(
     business = result.scalar_one_or_none()
     if not business:
         raise HTTPException(status_code=404, detail="Not found")
+    
+    cat_id = business.category_id
+    gov_id = business.governorate_id
+    is_active = business.status == BusinessStatus.active
+
     await db.delete(business)
     await db.commit()
+
+    if is_active:
+        await update_business_counts(db, category_id=cat_id, governorate_id=gov_id)
+        await db.commit()
 
 # ── Admin: All businesses (any status) ───────────────────────
 @router.get("/admin/all", response_model=PaginatedBusinesses)
@@ -199,7 +332,7 @@ async def admin_list_all(
     per_page: int = 20
 ):
     q = select(Business)
-    q = load_relations(q)
+    q = load_relations(q, include_owner=True)
     if status:
         q = q.where(Business.status == status)
     q = q.order_by(desc(Business.created_at))
@@ -207,8 +340,15 @@ async def admin_list_all(
     total = (await db.execute(count_q)).scalar()
     offset = (page - 1) * per_page
     result = await db.execute(q.offset(offset).limit(per_page))
+    items = result.scalars().all()
+    
+    # Map owner email to owner_email field
+    for item in items:
+        if item.owner:
+            item.owner_email = item.owner.email
+            
     return PaginatedBusinesses(
-        items=result.scalars().all(),
+        items=items,
         total=total, page=page,
         per_page=per_page,
         pages=(total + per_page - 1) // per_page

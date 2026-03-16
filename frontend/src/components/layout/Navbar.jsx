@@ -1,20 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Building2 } from 'lucide-react'
 import Logo from '@/components/ui/Logo'
+import { useAuth } from '@/context/AuthContext'
 
 const links = [
   { label: 'Home', to: '/' },
   { label: 'Categories', to: '/categories' },
-  { label: 'Governorates', to: '/governorates' },
-  { label: 'Pricing', to: '/pricing' },
-  { label: 'Contact', to: '/contact' },
-]
+  { label: 'Governorates', to: '/governorates' },  { label: 'Pricing', to: '/pricing' },{ label: 'Contact', to: '/contact' },]
 
 export default function Navbar() {
+  const { isAdmin, isVendor, logout, vendorLogout } = useAuth()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    vendorLogout()
+    setOpen(false)
+    navigate('/')
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -48,14 +54,32 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden md:flex items-center gap-3">
-          <button onClick={() => navigate('/admin/login')}
-            className="border border-white/20 text-white/65 hover:border-white/40 hover:text-white text-sm font-semibold px-4 py-2 rounded-md transition-all">
-            Log in
-          </button>
-          <button onClick={() => navigate('/list-business')}
-            className="brand-btn text-sm px-5 py-2 rounded-md">
-            + List Your Business
-          </button>
+          {isAdmin ? (
+            <Link to="/admin" className="brand-btn px-6 py-2 rounded-md text-sm font-bold">
+              Admin Panel
+            </Link>
+          ) : isVendor ? (
+            <div className="flex items-center gap-4">
+              <Link to="/vendor/dashboard" className="text-sm font-bold text-white/70 hover:text-white transition-colors">
+                Dashboard
+              </Link>
+              <button onClick={handleLogout}
+                className="border border-white/20 text-white/65 hover:border-white/40 hover:text-white text-sm font-semibold px-4 py-2 rounded-md transition-all">
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <>
+              <button onClick={() => navigate('/admin/login')}
+                className="border border-white/20 text-white/65 hover:border-white/40 hover:text-white text-sm font-semibold px-4 py-2 rounded-md transition-all">
+                Log in
+              </button>
+              <Link to="/vendor/login" className="brand-btn px-5 py-2 rounded-md text-sm flex items-center gap-2">
+                <Building2 size={16} />
+                List Your Business
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -75,14 +99,32 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="pt-3 flex flex-col gap-2">
-            <button onClick={() => { navigate('/admin/login'); setOpen(false) }}
-              className="border border-white/20 text-white/65 text-sm font-semibold px-4 py-2 rounded-md">
-              Log in
-            </button>
-            <button onClick={() => { navigate('/list-business'); setOpen(false) }}
-              className="brand-btn text-sm px-5 py-2 rounded-md">
-              + List Your Business
-            </button>
+            {isAdmin ? (
+              <Link to="/admin" onClick={() => setOpen(false)} className="brand-btn px-6 py-2 rounded-md text-sm font-bold text-center">
+                Admin Panel
+              </Link>
+            ) : isVendor ? (
+              <>
+                <Link to="/vendor/dashboard" onClick={() => setOpen(false)} className="text-sm font-bold text-white/70 hover:text-white transition-colors py-2 text-center">
+                  Dashboard
+                </Link>
+                <button onClick={handleLogout}
+                  className="border border-white/20 text-white/65 hover:border-white/40 hover:text-white text-sm font-semibold px-4 py-2 rounded-md transition-all">
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => { navigate('/admin/login'); setOpen(false) }}
+                  className="border border-white/20 text-white/65 text-sm font-semibold px-4 py-2 rounded-md">
+                  Log in
+                </button>
+                <button onClick={() => { navigate('/vendor/login'); setOpen(false) }}
+                  className="brand-btn text-sm px-5 py-2 rounded-md">
+                  + List Your Business
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

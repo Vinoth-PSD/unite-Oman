@@ -5,6 +5,22 @@ import uuid
 import enum
 from core.database import Base
 
+class User(Base):
+    __tablename__ = "users"
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email         = Column(String(200), unique=True, nullable=False)
+    password_hash = Column(String(200), nullable=False)
+    role          = Column(String(50), default="vendor")
+    is_active     = Column(Boolean, default=False)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+class Admin(Base):
+    __tablename__ = "admins"
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email         = Column(String(200), unique=True, nullable=False)
+    password_hash = Column(String(200), nullable=False)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
 class BusinessStatus(str, enum.Enum):
     pending = "pending"
     active = "active"
@@ -77,12 +93,25 @@ class Business(Base):
     view_count        = Column(Integer, default=0)
     rating_avg        = Column(DECIMAL(3, 2), default=0)
     rating_count      = Column(Integer, default=0)
-    owner_id          = Column(UUID(as_uuid=True))
+    owner_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
     updated_at        = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     category          = relationship("Category", back_populates="businesses")
     governorate       = relationship("Governorate", back_populates="businesses")
+    owner             = relationship("User")
     reviews           = relationship("Review", back_populates="business", cascade="all, delete-orphan")
+    services          = relationship("Service", back_populates="business", cascade="all, delete-orphan")
+
+class Service(Base):
+    __tablename__ = "services"
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    name        = Column(String(200), nullable=False)
+    description = Column(Text)
+    price       = Column(String(100))
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    
+    business    = relationship("Business", back_populates="services")
 
 class Review(Base):
     __tablename__ = "reviews"

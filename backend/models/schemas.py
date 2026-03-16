@@ -10,8 +10,8 @@ class GovernorateOut(BaseModel):
     name_en: str
     name_ar: str
     slug: str
-    emoji: Optional[str]
-    business_count: int
+    emoji: Optional[str] = None
+    business_count: int = 0
     class Config: from_attributes = True
 
 # ── Category ─────────────────────────────────────────────────
@@ -20,91 +20,94 @@ class CategoryOut(BaseModel):
     name_en: str
     name_ar: str
     slug: str
-    icon: Optional[str]
-    cover_image_url: Optional[str]
-    description: Optional[str]
-    business_count: int
-    is_featured: bool
+    icon: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    description: Optional[str] = None
+    business_count: int = 0
+    is_featured: bool = False
     class Config: from_attributes = True
 
 # ── Business ─────────────────────────────────────────────────
 class BusinessCard(BaseModel):
     id: UUID
     name_en: str
-    name_ar: Optional[str]
+    name_ar: Optional[str] = None
     slug: str
-    short_description: Optional[str]
-    category: Optional[CategoryOut]
-    governorate: Optional[GovernorateOut]
-    logo_url: Optional[str]
-    cover_image_url: Optional[str]
-    phone: Optional[str]
-    whatsapp: Optional[str]
-    status: BusinessStatus
-    plan: PlanType
-    listing_type: ListingType
-    is_verified: bool
-    is_featured: bool
-    rating_avg: Optional[float]
-    rating_count: int
-    view_count: int
+    short_description: Optional[str] = None
+    category: Optional[CategoryOut] = None
+    governorate: Optional[GovernorateOut] = None
+    logo_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    status: BusinessStatus = BusinessStatus.pending
+    plan: PlanType = PlanType.basic
+    listing_type: ListingType = ListingType.standard
+    is_verified: bool = False
+    is_featured: bool = False
+    rating_avg: Optional[float] = 0
+    rating_count: int = 0
+    view_count: int = 0
+    gallery_urls: Optional[List[str]] = []
+    tags: Optional[List[str]] = []
+    owner_email: Optional[str] = None
     created_at: datetime
     class Config: from_attributes = True
 
 class BusinessDetail(BusinessCard):
-    description: Optional[str]
-    email: Optional[str]
-    website: Optional[str]
-    address: Optional[str]
-    latitude: Optional[float]
-    longitude: Optional[float]
-    gallery_urls: List[str]
-    tags: List[str]
-    business_hours: Optional[Dict[str, Any]]
+    description: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    gallery_urls: Optional[List[str]] = []
+    tags: Optional[List[str]] = []
+    business_hours: Optional[Dict[str, Any]] = {}
 
 class BusinessCreate(BaseModel):
     name_en: str = Field(..., min_length=2, max_length=200)
-    name_ar: Optional[str]
-    description: Optional[str]
+    name_ar: Optional[str] = None
+    description: Optional[str] = None
     short_description: Optional[str] = Field(None, max_length=300)
     category_id: int
     governorate_id: int
     tags: List[str] = []
-    phone: Optional[str]
-    whatsapp: Optional[str]
-    email: Optional[EmailStr]
-    website: Optional[str]
-    address: Optional[str]
-    latitude: Optional[float]
-    longitude: Optional[float]
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     business_hours: Optional[Dict[str, Any]] = {}
 
 class BusinessUpdate(BaseModel):
-    name_en: Optional[str]
-    name_ar: Optional[str]
-    description: Optional[str]
-    short_description: Optional[str]
-    category_id: Optional[int]
-    governorate_id: Optional[int]
-    tags: Optional[List[str]]
-    phone: Optional[str]
-    whatsapp: Optional[str]
-    email: Optional[EmailStr]
-    website: Optional[str]
-    address: Optional[str]
-    latitude: Optional[float]
-    longitude: Optional[float]
-    logo_url: Optional[str]
-    cover_image_url: Optional[str]
-    gallery_urls: Optional[List[str]]
-    business_hours: Optional[Dict[str, Any]]
+    name_en: Optional[str] = None
+    name_ar: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    category_id: Optional[int] = None
+    governorate_id: Optional[int] = None
+    tags: Optional[List[str]] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    logo_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    gallery_urls: Optional[List[str]] = None
+    business_hours: Optional[Dict[str, Any]] = None
 
 class AdminBusinessUpdate(BusinessUpdate):
-    status: Optional[BusinessStatus]
-    plan: Optional[PlanType]
-    listing_type: Optional[ListingType]
-    is_verified: Optional[bool]
-    is_featured: Optional[bool]
+    status: Optional[BusinessStatus] = None
+    plan: Optional[PlanType] = None
+    listing_type: Optional[ListingType] = None
+    is_verified: Optional[bool] = None
+    is_featured: Optional[bool] = None
 
 # ── Review ───────────────────────────────────────────────────
 class ReviewOut(BaseModel):
@@ -140,10 +143,60 @@ class DashboardStats(BaseModel):
     total_governorates: int
     featured_businesses: int
 
+class VendorStats(BaseModel):
+    total_reviews: int
+    avg_rating: float
+    total_services: int
+    total_views: int
+
+
+# ── Service ─────────────────────────────────────────────────
+class ServiceOut(BaseModel):
+    id: UUID
+    business_id: UUID
+    name: str
+    description: Optional[str]
+    price: Optional[str]
+    created_at: datetime
+    class Config: from_attributes = True
+
+class ServiceCreate(BaseModel):
+    business_id: UUID
+    name: str = Field(..., min_length=2, max_length=200)
+    description: Optional[str] = None
+    price: Optional[str] = None
+
+class ServiceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[str] = None
+
 # ── Auth ─────────────────────────────────────────────────────
 class AdminLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserRegister(BaseModel):
+    email: str
+    password: str = Field(..., min_length=6)
+
+class VendorRegister(BaseModel):
+    # User info
+    email: str
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=100) # Match frontend
+    
+    # Business info
+    business_name: str = Field(..., min_length=2, max_length=200)
+    category_id: int
+    location_id: int # Match frontend
+    address: Optional[str] = None
+    phone: Optional[str] = None
+
 
 class TokenOut(BaseModel):
     access_token: str

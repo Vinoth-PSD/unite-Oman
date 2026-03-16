@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MapPin, Phone, Mail, Globe, Clock, ChevronLeft, Send, Heart, Calendar } from 'lucide-react'
+import { MapPin, Phone, Mail, Globe, Clock, ChevronLeft, Send, Heart, Calendar, Star } from 'lucide-react'
 import { businessApi, reviewApi } from '@/lib/api'
 import { Spinner } from '@/components/ui'
 import BookingModal from '@/components/ui/BookingModal'
@@ -18,8 +18,78 @@ function StarPicker({ value, onChange }) {
         <button key={n} type="button"
           onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
           onClick={() => onChange(n)}
-          className={`text-2xl transition-colors ${n <= (hover || value) ? 'text-amber-400' : 'text-gray-200'}`}>★</button>
+          className={`transition-all ${n <= (hover || value) ? 'text-amber-400 scale-110' : 'text-gray-200 hover:text-gray-300'}`}>
+          <Star size={20} fill={n <= (hover || value) ? 'currentColor' : 'none'} strokeWidth={1.5} />
+        </button>
       ))}
+    </div>
+  )
+}
+
+function RatingStars({ rating, size = 14 }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={size}
+          fill={n <= Math.round(rating) ? '#fbbf24' : 'none'}
+          className={n <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}
+          strokeWidth={1.5}
+        />
+      ))}
+    </div>
+  )
+}
+
+function RatingBreakdown({ reviews }) {
+  const total = reviews.length
+  const counts = [0, 0, 0, 0, 0, 0] // index 1-5
+  reviews.forEach(r => counts[Math.floor(r.rating)]++)
+
+  return (
+    <div className="space-y-2 mt-4">
+      {[5, 4, 3, 2, 1].map(num => {
+        const count = counts[num] || 0
+        const percentage = total > 0 ? (count / total) * 100 : 0
+        return (
+          <div key={num} className="flex items-center gap-3 text-[10px] font-bold">
+            <span className="w-3 text-gray-400">{num}</span>
+            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-amber-400 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }} />
+            </div>
+            <span className="w-8 text-right text-gray-400">{count}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Lightbox({ images, index, onClose, onPrev, onNext }) {
+  if (index === null) return null
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+      <button onClick={onClose} className="absolute top-6 right-6 text-white/60 hover:text-white transition-colors bg-white/10 p-2 rounded-full">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+      </button>
+
+      {images.length > 1 && (
+        <>
+          <button onClick={onPrev} className="absolute left-6 text-white/40 hover:text-white transition-colors">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <button onClick={onNext} className="absolute right-6 text-white/40 hover:text-white transition-colors">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+        </>
+      )}
+
+      <img src={images[index]} alt="" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
+        <span className="text-white/60 text-sm font-medium">{index + 1} / {images.length}</span>
+      </div>
     </div>
   )
 }
@@ -30,6 +100,7 @@ export default function BusinessProfilePage() {
   const [tab, setTab] = useState('about')
   const [saved, setSaved] = useState(false)
   const [showBooking, setShowBooking] = useState(false)
+  const [lbIndex, setLbIndex] = useState(null)
   const [reviewForm, setReviewForm] = useState({ reviewer_name: '', rating: 0, comment: '' })
 
   const { data: business, isLoading, error } = useQuery({
@@ -46,9 +117,10 @@ export default function BusinessProfilePage() {
   const submitReview = useMutation({
     mutationFn: reviewApi.create,
     onSuccess: () => {
-      toast.success('Review submitted! It will appear after approval.')
+      toast.success('Review submitted successfully!')
       setReviewForm({ reviewer_name: '', rating: 0, comment: '' })
-      qc.invalidateQueries(['reviews', business.id])
+      qc.invalidateQueries({ queryKey: ['reviews', business.id] })
+      qc.invalidateQueries({ queryKey: ['business', slug] })
     },
     onError: () => toast.error('Failed to submit review')
   })
@@ -103,9 +175,13 @@ export default function BusinessProfilePage() {
               </div>
               <h1 className="font-display text-[clamp(24px,4vw,38px)] text-white font-normal tracking-tight mb-1">{name_en}</h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-white/75">
-                {rating_count > 0 && (
-                  <span className="flex items-center gap-1">
-                    {'★'.repeat(Math.round(rating_avg || 0))} <strong className="text-white">{Number(rating_avg).toFixed(1)}</strong> ({rating_count} reviews)
+                {(reviews.length > 0 || rating_count > 0) && (
+                  <span className="flex items-center gap-2">
+                    <RatingStars rating={reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) : (rating_avg || 0)} />
+                    <strong className="text-white">
+                      {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg).toFixed(1)}
+                    </strong> 
+                    ({reviews.length || rating_count} reviews)
                   </span>
                 )}
                 {governorate && <span className="flex items-center gap-1">📍 {governorate.name_en}</span>}
@@ -157,33 +233,67 @@ export default function BusinessProfilePage() {
               <div className="p-6">
                 {/* About tab */}
                 {tab === 'about' && (
-                  <div>
-                    <p className="text-sm text-gray-600 leading-relaxed mb-5">{description || short_description || 'No description available.'}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="relative">
+                      <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-pink to-purple rounded-full opacity-20" />
+                      <p className="text-[15px] text-gray-600 leading-[1.8] font-medium tracking-tight">
+                        {description || short_description || 'No description available for this verified business.'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {phone && (
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">📞 Phone</p>
-                          <p className="text-sm font-semibold text-ink">{phone}</p>
-                        </div>
+                        <a href={`tel:${phone}`} className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-pink/30 hover:shadow-md transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-pink group-hover:scale-110 transition-transform">
+                              <Phone size={18} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Call Us</p>
+                              <p className="text-sm font-bold text-ink">{phone}</p>
+                            </div>
+                          </div>
+                        </a>
                       )}
                       {email && (
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">📧 Email</p>
-                          <p className="text-sm font-semibold text-ink">{email}</p>
-                        </div>
+                        <a href={`mailto:${email}`} className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-purple/30 hover:shadow-md transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-purple group-hover:scale-110 transition-transform">
+                              <Mail size={18} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Email Us</p>
+                              <p className="text-sm font-bold text-ink truncate max-w-[150px]">{email}</p>
+                            </div>
+                          </div>
+                        </a>
                       )}
                       {(todayHours || business_hours) && (
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">🕐 Hours</p>
-                          <p className="text-sm font-semibold text-ink">
-                            {todayHours ? `${todayHours.open} – ${todayHours.close}` : '—'}
-                          </p>
+                        <div className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-emerald-500/30 hover:shadow-md transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                              <Clock size={18} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Today's Hours</p>
+                              <p className="text-sm font-bold text-ink font-mono tracking-tight">
+                                {todayHours ? `${todayHours.open} – ${todayHours.close}` : 'Closed Today'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )}
                       {address && (
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">📍 Location</p>
-                          <p className="text-sm font-semibold text-ink">{address}</p>
+                        <div className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-amber-500/30 hover:shadow-md transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                              <MapPin size={18} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Location</p>
+                              <p className="text-sm font-bold text-ink line-clamp-1">{address}</p>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -300,14 +410,42 @@ export default function BusinessProfilePage() {
               </div>
             </div>
 
-            {/* Gallery strip */}
+            {/* Premium Bento Gallery */}
             {gallery_urls.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-bold text-ink text-sm mb-3">Gallery</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {gallery_urls.map((url, i) => (
-                    <img key={i} src={url} alt="" className="rounded-xl object-cover aspect-video w-full" />
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-display text-xl text-ink font-normal">Gallery</h3>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{gallery_urls.length} Photos</span>
+                </div>
+
+                <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[400px]">
+                  {/* Large featured photo */}
+                  <div onClick={() => setLbIndex(0)}
+                    className="col-span-2 row-span-2 relative group cursor-pointer overflow-hidden rounded-2xl border border-gray-100">
+                    <img src={gallery_urls[0]} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Smaller thumbnails */}
+                  {gallery_urls.slice(1, 4).map((url, i) => (
+                    <div key={i} onClick={() => setLbIndex(i + 1)}
+                      className={`relative group cursor-pointer overflow-hidden rounded-2xl border border-gray-100 ${i === 2 ? 'col-span-2' : 'col-span-2 sm:col-span-1'}`}>
+                      <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   ))}
+
+                  {/* View all overlay on last visible image if more exist */}
+                  {gallery_urls.length > 4 && (
+                    <div onClick={() => setLbIndex(4)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-bold text-sm cursor-pointer hover:bg-black/60 transition-colors rounded-2xl">
+                      +{gallery_urls.length - 4} More
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -346,13 +484,14 @@ export default function BusinessProfilePage() {
                 <h3 className="font-bold text-ink text-sm mb-4 flex items-center gap-2"><Clock size={14} className="text-purple" />Business Hours</h3>
                 <div className="space-y-2">
                   {DAYS.map(day => {
-                    const h = business_hours[day.toLowerCase()]
+                    const hours = business_hours[day.toLowerCase()]
+                    const isClosed = !hours || hours.closed
                     const isToday = day === today
                     return (
                       <div key={day} className={`flex justify-between text-xs ${isToday ? 'font-bold' : 'font-medium'}`}>
                         <span className={isToday ? 'text-purple' : 'text-gray-500'}>{day.slice(0, 3)}</span>
-                        <span className={h ? (isToday ? 'text-purple' : 'text-ink') : 'text-gray-300'}>
-                          {h ? `${h.open} – ${h.close}` : 'Closed'}
+                        <span className={!isClosed ? (isToday ? 'text-purple' : 'text-ink') : 'text-gray-300'}>
+                          {!isClosed ? `${hours.open} – ${hours.close}` : 'Closed'}
                         </span>
                       </div>
                     )
@@ -362,16 +501,25 @@ export default function BusinessProfilePage() {
             )}
 
             {/* Rating snapshot */}
-            {rating_count > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-bold text-ink text-sm mb-3">Rating</h3>
-                <div className="flex items-center gap-3">
-                  <div className="font-display text-4xl brand-text font-normal">{Number(rating_avg).toFixed(1)}</div>
-                  <div>
-                    <div className="text-amber-400 text-base">{'★'.repeat(Math.round(rating_avg || 0))}</div>
-                    <div className="text-xs text-gray-400 font-medium">{rating_count} reviews</div>
+            {(reviews.length > 0 || rating_count > 0) && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h3 className="font-display text-xl text-ink font-normal mb-4">Rating</h3>
+                <div className="flex items-center gap-6 pb-6 border-b border-gray-50">
+                  <div className="text-center">
+                    <div className="font-display text-5xl brand-text font-normal mb-1">
+                      {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg).toFixed(1)}
+                    </div>
+                    <RatingStars rating={reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) : (rating_avg || 0)} size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Review Analysis</p>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      Based on <span className="text-ink font-bold">{reviews.length || rating_count}</span> verified customer reviews.
+                    </p>
                   </div>
                 </div>
+                
+                <RatingBreakdown reviews={reviews} />
               </div>
             )}
 
@@ -391,6 +539,14 @@ export default function BusinessProfilePage() {
       </div>
 
       {showBooking && <BookingModal business={business} onClose={() => setShowBooking(false)} />}
+
+      <Lightbox
+        images={gallery_urls}
+        index={lbIndex}
+        onClose={() => setLbIndex(null)}
+        onPrev={() => setLbIndex(prev => (prev > 0 ? prev - 1 : gallery_urls.length - 1))}
+        onNext={() => setLbIndex(next => (next < gallery_urls.length - 1 ? next + 1 : 0))}
+      />
     </div>
   )
 }

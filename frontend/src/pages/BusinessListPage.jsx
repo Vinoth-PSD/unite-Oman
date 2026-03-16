@@ -1,10 +1,22 @@
 import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ChevronDown, Sparkles, X } from 'lucide-react'
+import { Search, ChevronDown, Sparkles, X, Utensils, Car, ShoppingBag, Stethoscope, Building2, Laptop, Briefcase, Wrench, Phone } from 'lucide-react'
 import { businessApi, categoryApi, governorateApi } from '@/lib/api'
 import { BusinessCard, Spinner, EmptyState, Pagination } from '@/components/ui'
 import toast from 'react-hot-toast'
+
+const CATEGORY_ICONS = {
+  'restaurants': Utensils,
+  'automotive': Car,
+  'retail': ShoppingBag,
+  'health': Stethoscope,
+  'real-estate': Building2,
+  'it-software': Laptop,
+  'services': Wrench,
+  'beauty': Sparkles,
+  'telecom': Phone,
+}
 
 // ── AI Pick feature ───────────────────────────────────────────
 function AiPickModal({ businesses, onClose }) {
@@ -120,7 +132,7 @@ export default function BusinessListPage() {
               <select value={category} onChange={e => setParam('category', e.target.value)}
                 className="appearance-none bg-white border border-gray-200 rounded-xl pl-3 pr-8 py-2.5 text-sm font-semibold text-ink cursor-pointer hover:border-gray-300 transition-all outline-none">
                 <option value="">All Categories</option>
-                {cats.map(c => <option key={c.id} value={c.slug}>{c.icon} {c.name_en}</option>)}
+                {cats.map(c => <option key={c.id} value={c.slug}>{c.name_en}</option>)}
               </select>
               <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
@@ -170,7 +182,7 @@ export default function BusinessListPage() {
                   category === c.slug ? 'text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
                 }`}
                 style={category === c.slug ? { background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' } : {}}>
-                {c.icon} {c.name_en}
+                {(() => { const Icon = CATEGORY_ICONS[c.slug] || Briefcase; return <Icon size={14} strokeWidth={2} /> })()} {c.name_en}
               </button>
             ))}
           </div>
@@ -180,10 +192,10 @@ export default function BusinessListPage() {
       {/* Results */}
       <div className="max-w-[1240px] mx-auto px-6 py-6">
         {/* Result count */}
-        <p className="text-sm text-gray-500 mb-4 font-medium">
+        <div className="text-sm text-gray-500 mb-4 font-medium flex items-center gap-1.5 flex-wrap">
           {isLoading ? 'Searching…' : `${total.toLocaleString()} result${total !== 1 ? 's' : ''} found`}
-          {activeCategory && <span className="text-ink font-bold"> in {activeCategory.icon} {activeCategory.name_en}</span>}
-        </p>
+          {activeCategory && <span className="text-ink font-bold flex items-center gap-1"> in {(() => { const Icon = CATEGORY_ICONS[activeCategory.slug] || Briefcase; return <Icon size={16} strokeWidth={2} /> })()} {activeCategory.name_en}</span>}
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-20"><Spinner className="w-10 h-10" /></div>

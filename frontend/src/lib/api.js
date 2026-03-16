@@ -5,17 +5,26 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Attach auth token if available
+// Attach auth token if available (admin or vendor)
 api.interceptors.request.use(cfg => {
-  const token = localStorage.getItem('admin_token')
-  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  const adminToken = localStorage.getItem('admin_token')
+  const vendorToken = localStorage.getItem('vendor_token')
+  
+  if (adminToken) {
+    cfg.headers.Authorization = `Bearer ${adminToken}`
+  } else if (vendorToken) {
+    cfg.headers.Authorization = `Bearer ${vendorToken}`
+  }
   return cfg
 })
 
 api.interceptors.response.use(
   r => r,
   err => {
-    if (err.response?.status === 401) localStorage.removeItem('admin_token')
+    if (err.response?.status === 401) {
+      localStorage.removeItem('admin_token')
+      localStorage.removeItem('vendor_token')
+    }
     return Promise.reject(err)
   }
 )
@@ -23,6 +32,8 @@ api.interceptors.response.use(
 // ── Businesses ────────────────────────────────────────────────
 export const businessApi = {
   list: (params) => api.get('/api/businesses', { params }).then(r => r.data),
+  me: () => api.get('/api/businesses/me').then(r => r.data),
+  stats: () => api.get('/api/businesses/me/stats').then(r => r.data),
   featured: (limit = 3) => api.get('/api/businesses/featured', { params: { limit } }).then(r => r.data),
   get: (slug) => api.get(`/api/businesses/${slug}`).then(r => r.data),
   create: (data) => api.post('/api/businesses', data).then(r => r.data),
@@ -47,6 +58,7 @@ export const governorateApi = {
 // ── Reviews ───────────────────────────────────────────────────
 export const reviewApi = {
   list: (businessId) => api.get(`/api/reviews/${businessId}`).then(r => r.data),
+  me: () => api.get('/api/reviews/me').then(r => r.data),
   create: (data) => api.post('/api/reviews', data).then(r => r.data),
   approve: (id) => api.patch(`/api/reviews/admin/${id}/approve`).then(r => r.data),
   delete: (id) => api.delete(`/api/reviews/admin/${id}`),
@@ -56,6 +68,36 @@ export const reviewApi = {
 export const adminApi = {
   login: (data) => api.post('/api/admin/login', data).then(r => r.data),
   stats: () => api.get('/api/admin/stats').then(r => r.data),
+  listVendors: () => api.get('/api/admin/vendors').then(r => r.data),
+  deleteVendor: (id) => api.delete(`/api/admin/vendors/${id}`),
+  getVendorStats: (id) => api.get(`/api/admin/vendors/${id}/stats`).then(r => r.data),
+  getVendorBusinesses: (id) => api.get(`/api/admin/vendors/${id}/businesses`).then(r => r.data),
+}
+
+// ── Vendor Auth ────────────────────────────────────────────────
+export const vendorAuthApi = {
+  login: (data) => api.post('/api/auth/login', data).then(r => r.data),
+  register: (data) => api.post('/api/auth/register', data).then(r => r.data),
+  vendorRegister: (data) => api.post('/api/auth/vendor-register', data).then(r => r.data),
+}
+
+// ── Services ──────────────────────────────────────────────────
+export const serviceApi = {
+  create: (data) => api.post('/api/services', data).then(r => r.data),
+  listByBusiness: (businessId) => api.get(`/api/services/business/${businessId}`).then(r => r.data),
+  update: (id, data) => api.put(`/api/services/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/api/services/${id}`),
+}
+
+// ── Common ────────────────────────────────────────────────────
+export const commonApi = {
+  upload: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(r => r.data)
+  }
 }
 
 export default api

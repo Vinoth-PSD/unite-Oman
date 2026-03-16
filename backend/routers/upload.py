@@ -1,0 +1,36 @@
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+import uuid
+import os
+import shutil
+from core.config import settings
+from core.auth import get_current_user
+
+router = APIRouter(prefix="/api/upload", tags=["upload"])
+
+# Ensure upload directory exists
+UPLOAD_PATH = os.path.join(os.getcwd(), settings.UPLOAD_DIR)
+os.makedirs(UPLOAD_PATH, exist_ok=True)
+
+@router.post("")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        # Generate unique filename
+        file_ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid.uuid4()}{file_ext}"
+        filepath = os.path.join(UPLOAD_PATH, filename)
+        
+        # Save file locally
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Return local URL (assumes /uploads mount in main.py)
+        url = f"{settings.BASE_URL}/{settings.UPLOAD_DIR}/{filename}"
+        
+        return {"url": url}
+        
+    except Exception as e:
+        print(f"Upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

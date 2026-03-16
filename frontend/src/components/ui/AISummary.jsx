@@ -52,7 +52,7 @@ Write only the summary, no preamble.`
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg,#EDE5F7,#FCE8F1)' }}>
-            🤖
+            
           </div>
           <span className="text-sm font-semibold text-purple">
             {loading ? 'Generating AI Summary…' : generated ? 'AI Summary' : 'Generate AI Summary of this business'}
