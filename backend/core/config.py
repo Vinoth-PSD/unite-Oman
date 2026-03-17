@@ -6,10 +6,16 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
-    ALLOWED_ORIGINS: str = "http://localhost:5173"
+
+    # Allow frontend origin
+    ALLOWED_ORIGINS: str = "http://72.61.229.172:5176"
+
     ENVIRONMENT: str = "development"
+
     UPLOAD_DIR: str = "uploads"
-    BASE_URL: str = "http://localhost:8000"
+
+    # Backend base URL
+    BASE_URL: str = "http://72.61.229.172:8090"
 
     @property
     def origins(self) -> List[str]:
@@ -17,5 +23,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()
