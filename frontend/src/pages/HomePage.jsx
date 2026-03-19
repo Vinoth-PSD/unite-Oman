@@ -1,23 +1,74 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, MapPin, ChevronRight } from 'lucide-react'
+import { Search, MapPin, Building2, FolderTree, ChevronRight } from 'lucide-react'
 import { businessApi, categoryApi, governorateApi } from '@/lib/api'
 import { BusinessCard, CategoryCard, CategoryIconCard, GovernorateIconCard, Spinner } from '@/components/ui'
 
 // ── Hero ──────────────────────────────────────────────────────
 function Hero() {
+  
   const [query, setQuery] = useState('')
   const [governorate, setGovernorate] = useState('All Oman')
+  const [suggestions, setSuggestions] = useState([])
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const dropdownRef = useRef(null)
   const navigate = useNavigate()
+  
   const { data: govs = [] } = useQuery({ queryKey: ['governorates'], queryFn: governorateApi.list })
+
+  // Handle outside clicks to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Debounced autocomplete
+  useEffect(() => {
+    if (!query.trim() || query.length < 1) {
+      setSuggestions([])
+      setIsDropdownOpen(false)
+      return
+    }
+
+    setIsDropdownOpen(true) // Open immediately once 1 char is present
+    const timer = setTimeout(async () => {
+      setIsLoadingSuggestions(true)
+      try {
+        const data = await businessApi.autocomplete(query)
+        setSuggestions(data)
+      } catch (e) {
+        console.error('Autocomplete error:', e)
+      } finally {
+        setIsLoadingSuggestions(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [query])
 
   const handleSearch = e => {
     e.preventDefault()
+    setIsDropdownOpen(false)
     const params = new URLSearchParams()
     if (query) params.set('q', query)
     if (governorate !== 'All Oman') params.set('governorate', govs.find(g => g.name_en === governorate)?.slug || '')
     navigate(`/businesses?${params}`)
+  }
+
+  const handleSelectSuggestion = (s) => {
+    setIsDropdownOpen(false)
+    if (s.type === 'category') {
+      navigate(`/businesses?category=${s.slug}`)
+    } else {
+      navigate(`/business/${s.slug}`)
+    }
   }
 
   const quickTags = ['Construction','Healthcare','Legal','Real Estate','IT & Tech','Education']
@@ -55,23 +106,84 @@ function Hero() {
             </p>
 
             {/* Search */}
-            <form onSubmit={handleSearch} className="flex bg-white rounded-xl overflow-hidden shadow-2xl mb-3" style={{ boxShadow: '0 24px 64px rgba(91,45,142,.2)' }}>
-              <div className="flex-1 flex items-center gap-2.5 px-4 border-r border-gray-200">
-                <Search size={16} className="text-pink flex-shrink-0" />
-                <input value={query} onChange={e => setQuery(e.target.value)}
-                  placeholder="Search businesses, services…"
-                  className="flex-1 border-none outline-none text-sm text-ink py-3.5 bg-transparent placeholder-gray-400" />
-              </div>
-              <div className="flex items-center gap-2 px-3 min-w-[160px]">
-                <MapPin size={14} className="text-purple flex-shrink-0" />
-                <select value={governorate} onChange={e => setGovernorate(e.target.value)}
-                  className="border-none outline-none bg-transparent text-sm text-ink font-semibold cursor-pointer py-3.5 flex-1">
-                  <option>All Oman</option>
-                  {govs.map(g => <option key={g.id}>{g.name_en}</option>)}
-                </select>
-              </div>
-              <button type="submit" className="brand-btn px-7 text-sm font-bold tracking-wide">Search</button>
-            </form>
+            <div className="relative" ref={dropdownRef}>
+              <form onSubmit={handleSearch} className="flex bg-white rounded-xl overflow-hidden shadow-2xl mb-3" style={{ boxShadow: '0 24px 64px rgba(91,45,142,.2)' }}>
+                <div className="flex-1 flex items-center gap-2.5 px-4 border-r border-gray-200">
+                  <Search size={16} className="text-pink flex-shrink-0" />
+                  <input 
+                    value={query} 
+                    onChange={e => setQuery(e.target.value)}
+                    onFocus={() => query.length >= 1 && setIsDropdownOpen(true)}
+                    placeholder="Search businesses, services…"
+                    className="flex-1 border-none outline-none text-sm text-ink py-3.5 bg-transparent placeholder-gray-400" />
+                  {isLoadingSuggestions && <Spinner className="w-3 h-3 border-pink/30 border-t-pink" />}
+                </div>
+                <div className="flex items-center gap-2 px-3 min-w-[160px]">
+                  <MapPin size={14} className="text-purple flex-shrink-0" />
+                  <select value={governorate} onChange={e => setGovernorate(e.target.value)}
+                    className="border-none outline-none bg-transparent text-sm text-ink font-semibold cursor-pointer py-3.5 flex-1">
+                    <option>All Oman</option>
+                    {govs.map(g => <option key={g.id}>{g.name_en}</option>)}
+                  </select>
+                </div>
+                <button type="submit" className="brand-btn px-7 text-sm font-bold tracking-wide">Search</button>
+              </form>
+
+              {/* Suggestions Dropdown */}
+              {isDropdownOpen && (query.length >= 1) && (
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white rounded-2xl shadow-2xl overflow-hidden z-[100] border border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="max-h-[320px] overflow-y-auto py-2">
+                    {isLoadingSuggestions ? (
+                      <div className="px-4 py-8 text-center">
+                        <Spinner className="w-6 h-6 border-pink/30 border-t-pink mx-auto mb-3" />
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Searching Businesses...</p>
+                      </div>
+                    ) : suggestions.length > 0 ? (
+                      <div className="divide-y divide-gray-50">
+                        {/* Categories Group */}
+                        {suggestions.filter(s => s.type === 'category').length > 0 && (
+                          <div className="py-2">
+                            <p className="px-4 py-1.5 text-[10px] font-bold text-purple uppercase tracking-widest bg-purple/5">Categories</p>
+                            {suggestions.filter(s => s.type === 'category').map((s) => (
+                              <button key={s.id} onClick={() => handleSelectSuggestion(s)}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                                <div className="w-7 h-7 rounded-lg bg-purple/10 text-purple flex items-center justify-center flex-shrink-0">
+                                  <FolderTree size={14} />
+                                </div>
+                                <p className="text-sm font-bold text-ink flex-1">{s.name}</p>
+                                <ChevronRight size={12} className="text-gray-300" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* Shops Group */}
+                        {suggestions.filter(s => s.type === 'business').length > 0 && (
+                          <div className="py-2">
+                            <p className="px-4 py-1.5 text-[10px] font-bold text-pink uppercase tracking-widest bg-pink/5">Shops / Vendors</p>
+                            {suggestions.filter(s => s.type === 'business').map((s) => (
+                              <button key={s.id} onClick={() => handleSelectSuggestion(s)}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                                <div className="w-7 h-7 rounded-lg bg-pink/10 text-pink flex items-center justify-center flex-shrink-0">
+                                  <Building2 size={14} />
+                                </div>
+                                <p className="text-sm font-bold text-ink flex-1">{s.name}</p>
+                                <ChevronRight size={12} className="text-gray-300" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <div className="text-2xl mb-2">🔍</div>
+                        <p className="text-sm font-bold text-ink">No results found</p>
+                        <p className="text-[11px] text-gray-400 mt-1">Try searching for something else</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] text-white/30 font-bold tracking-widest uppercase">Popular:</span>

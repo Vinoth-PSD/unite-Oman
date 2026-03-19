@@ -122,7 +122,9 @@ export function CategoryIconCard({ category, index = 0 }) {
         <Icon size={28} strokeWidth={1.5} />
       </div>
       <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
-      <p className="text-xs text-gray-400 font-medium">{business_count} businesses</p>
+      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
+        {business_count || 0} {business_count === 1 ? 'Business' : 'Businesses'}
+      </p>
     </Link>
   )
 }
@@ -144,8 +146,10 @@ export function CategoryCard({ category, large = false }) {
           <Icon size={large ? 20 : 16} strokeWidth={1.5} />
         </div>
         <h3 className={`font-bold text-white leading-tight mb-0.5 ${large ? 'text-xl' : 'text-sm'}`}>{name_en}</h3>
+        <p className="text-[10px] font-bold text-white/60 tracking-wider">
+          {business_count || 0} {business_count === 1 ? 'Shop' : 'Shops'}
+        </p>
         {name_ar && <p className="text-xs text-white/45 mb-1">{name_ar}</p>}
-        <p className="text-xs text-white/60 font-semibold">{business_count}+ businesses</p>
       </div>
     </Link>
   )
@@ -164,8 +168,10 @@ export function GovernorateIconCard({ governorate, index = 0 }) {
         <Icon size={28} strokeWidth={1.5} />
       </div>
       <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
-      <p className="text-[10px] text-purple font-bold tracking-tight mb-1 uppercase opacity-60">{name_ar}</p>
-      <p className="text-xs text-gray-400 font-medium">{business_count || 0} businesses</p>
+      {name_ar && <p className="text-[10px] text-purple font-bold tracking-tight mb-1 uppercase opacity-60">{name_ar}</p>}
+      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
+        {business_count || 0} {business_count === 1 ? 'Business' : 'Businesses'}
+      </p>
     </Link>
   )
 }

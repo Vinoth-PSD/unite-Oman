@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
-import { businessApi, reviewApi, serviceApi } from '@/lib/api'
+import { businessApi, reviewApi, serviceApi, bookingApi } from '@/lib/api'
 import { Spinner } from '@/components/ui'
+import toast from 'react-hot-toast'
 import { 
   History, 
   LayoutDashboard, 
@@ -36,6 +37,7 @@ export default function VendorDashboardPage() {
 
   const tabs = [
     { name: 'Overview', icon: LayoutDashboard, path: '/vendor/dashboard' },
+    { name: 'Appointments', icon: Clock, path: '/vendor/dashboard/appointments' },
     { name: 'My Shops', icon: Building2, path: '/vendor/dashboard/shops' },
     { name: 'Services', icon: Zap, path: '/vendor/dashboard/services' },
     { name: 'Reviews', icon: Star, path: '/vendor/dashboard/reviews' },
@@ -98,6 +100,7 @@ export default function VendorDashboardPage() {
 
           <Routes>
             <Route index element={<Overview />} />
+            <Route path="appointments" element={<VendorAppointments />} />
             <Route path="shops" element={<MyShops />} />
             <Route path="services" element={<VendorServices />} />
             <Route path="reviews" element={<VendorReviews />} />
@@ -404,6 +407,110 @@ function VendorServices() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function VendorAppointments() {
+  const { data: bookings, isLoading, refetch } = useQuery({
+    queryKey: ['vendor-bookings'],
+    queryFn: () => bookingApi.vendorList()
+  })
+
+  const updateStatus = async (id, status) => {
+    try {
+      await bookingApi.updateStatus(id, status)
+      toast.success(`Booking ${status}`)
+      refetch()
+    } catch {
+      toast.error('Failed to update status')
+    }
+  }
+
+  if (isLoading) return <Spinner />
+
+  if (!bookings?.length) {
+    return (
+      <div className="bg-white p-12 rounded-[2.5rem] border border-gray-100 shadow-sm text-center animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-gray-50 text-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+          <Clock size={40} />
+        </div>
+        <h2 className="text-xl font-bold text-ink mb-2">No appointments yet</h2>
+        <p className="text-gray-400 text-sm font-semibold max-w-sm mx-auto">
+          When customers book services from your shops, they will appear here.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-[#fcfcff] border-b border-gray-100">
+            <tr>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Customer</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Service & Shop</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Date & Time</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status</th>
+              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 text-ink">
+            {bookings.map(booking => (
+              <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors group">
+                <td className="px-8 py-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-pink/5 text-pink rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">
+                      {booking.name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-ink">{booking.name}</p>
+                      <p className="text-[11px] text-gray-400 font-bold tracking-tight">{booking.phone}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-8 py-6">
+                  <p className="text-sm font-bold text-ink">{booking.service || 'General Service'}</p>
+                  <p className="text-[11px] text-pink font-bold">{booking.business_name}</p>
+                </td>
+                <td className="px-8 py-6">
+                  <p className="text-xs font-bold text-ink">{booking.date}</p>
+                  <p className="text-[11px] text-gray-400 font-bold">{booking.time}</p>
+                </td>
+                <td className="px-8 py-6">
+                   <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                     booking.status === 'confirmed' ? 'bg-green-500/10 text-green-600' :
+                     booking.status === 'cancelled' ? 'bg-red-500/10 text-red-600' :
+                     'bg-amber-500/10 text-amber-600'
+                   }`}>
+                     {booking.status}
+                   </span>
+                </td>
+                <td className="px-8 py-6 text-right">
+                  {booking.status === 'pending' && (
+                    <div className="flex items-center justify-end gap-3">
+                      <button 
+                        onClick={() => updateStatus(booking.id, 'confirmed')}
+                        className="w-10 h-10 flex items-center justify-center text-green-500 bg-green-50 hover:bg-green-500 hover:text-white rounded-xl transition-all duration-300 shadow-sm" title="Confirm Booking">
+                        <CheckCircle size={20} />
+                      </button>
+                      <button 
+                        onClick={() => updateStatus(booking.id, 'cancelled')}
+                        className="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-300 shadow-sm" title="Cancel Booking">
+                        <XCircle size={20} />
+                      </button>
+                    </div>
+                  )}
+                  {booking.status !== 'pending' && (
+                    <span className="text-[10px] text-gray-300 font-black uppercase tracking-widest">Completed</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

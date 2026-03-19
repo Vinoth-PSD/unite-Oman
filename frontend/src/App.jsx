@@ -17,6 +17,8 @@ import VendorAuthPage from '@/pages/VendorAuthPage'
 import ListBusinessPage from '@/pages/ListBusinessPage'
 import VendorDashboardPage from '@/pages/VendorDashboardPage'
 import EditShopPage from '@/pages/EditShopPage'
+import PricingPage from '@/pages/PricingPage'
+import ContactPage from '@/pages/ContactPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +78,8 @@ export default function App() {
             <Route path="/business/:slug" element={<PublicLayout><BusinessProfilePage /></PublicLayout>} />
             <Route path="/categories" element={<PublicLayout><CategoriesPage /></PublicLayout>} />
             <Route path="/governorates" element={<PublicLayout><GovernoratesPage /></PublicLayout>} />
+            <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />
+            <Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} />
 
             {/* Vendor — vendor navbar */}
             <Route path="/vendor/login" element={<PublicLayout><VendorAuthPage /></PublicLayout>} />

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from core.config import settings
 from core.database import engine, Base
 from fastapi.staticfiles import StaticFiles
-from routers import businesses, catalog, reviews, admin, auth, services, upload
+from routers import businesses, catalog, reviews, admin, auth, services, upload, contact, bookings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,6 +63,8 @@ app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(services.router)
 app.include_router(upload.router)
+app.include_router(contact.router)
+app.include_router(bookings.router)
 
 # Mount local storage as static directory
 import os

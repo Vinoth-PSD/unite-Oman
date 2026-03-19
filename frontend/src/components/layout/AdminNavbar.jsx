@@ -8,6 +8,7 @@ const adminLinks = [
   { label: 'Shops', to: '/admin?tab=businesses', tab: 'businesses', icon: Building2 },
   { label: 'Requests', to: '/admin?tab=requests', tab: 'requests', icon: ClipboardList },
   { label: 'Vendors', to: '/admin?tab=vendors', tab: 'vendors', icon: Users },
+  { label: 'Messages', to: '/admin?tab=messages', tab: 'messages', icon: ClipboardList },
   { label: 'Reviews', to: '/admin?tab=reviews', tab: 'reviews', icon: Star },
   { label: 'History', to: '/admin?tab=history', tab: 'history', icon: History },
 ]

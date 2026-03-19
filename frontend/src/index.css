@@ -25,6 +25,9 @@
     box-shadow: 0 4px 12px rgba(232, 49, 122, 0.15);
     transform: translateY(-1px);
   }
+  .bg-zap-gradient {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  }
   /* Animations */
   @keyframes slideInFromBottom {
     from {
@@ -50,4 +53,34 @@
     content: '';
     @apply w-4 h-0.5 rounded-full bg-pink flex-shrink-0;
   }
+
+  /* Premium S-Curve Background Animations - HIGH PERFORMANCE */
+  @keyframes roam-s-1 {
+    0% { transform: translate(-20vw, 20vh) scale(1); opacity: 0; }
+    20% { transform: translate(10vw, 45vh) scale(1.2); opacity: 0.7; }
+    50% { transform: translate(50vw, 5vh) scale(1.5); opacity: 1; }
+    80% { transform: translate(90vw, 45vh) scale(1.2); opacity: 0.7; }
+    100% { transform: translate(120vw, 20vh) scale(1); opacity: 0; }
+  }
+  @keyframes roam-s-2 {
+    0% { transform: translate(120vw, 80vh) scale(1.2); opacity: 0; }
+    20% { transform: translate(90vw, 55vh) scale(1.5); opacity: 0.6; }
+    50% { transform: translate(50vw, 85vh) scale(1.8); opacity: 0.9; }
+    80% { transform: translate(10vw, 55vh) scale(1.5); opacity: 0.6; }
+    100% { transform: translate(-20vw, 80vh) scale(1.2); opacity: 0; }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { filter: blur(100px) brightness(1.2); }
+    50% { filter: blur(130px) brightness(2); }
+  }
+  
+  .animate-s-1 { 
+    animation: roam-s-1 25s ease-in-out infinite; 
+    will-change: transform, opacity;
+  }
+  .animate-s-2 { 
+    animation: roam-s-2 30s ease-in-out infinite; 
+    will-change: transform, opacity;
+  }
+  .animate-pulse-glow { animation: pulse-glow 8s ease-in-out infinite; }
 }

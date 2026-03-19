@@ -27,6 +27,26 @@ class CategoryOut(BaseModel):
     is_featured: bool = False
     class Config: from_attributes = True
 
+class CategoryCreate(BaseModel):
+    name_en: str = Field(..., min_length=2, max_length=100)
+    name_ar: str = Field(..., min_length=2, max_length=100)
+    slug: str = Field(..., min_length=2, max_length=100)
+    icon: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    description: Optional[str] = None
+    is_featured: bool = False
+    sort_order: Optional[int] = 0
+
+class CategoryUpdate(BaseModel):
+    name_en: Optional[str] = None
+    name_ar: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    description: Optional[str] = None
+    is_featured: Optional[bool] = None
+    sort_order: Optional[int] = None
+
 # ── Business ─────────────────────────────────────────────────
 class BusinessCard(BaseModel):
     id: UUID
@@ -64,6 +84,7 @@ class BusinessDetail(BusinessCard):
     gallery_urls: Optional[List[str]] = []
     tags: Optional[List[str]] = []
     business_hours: Optional[Dict[str, Any]] = {}
+    services: Optional[List["ServiceOut"]] = []
 
 class BusinessCreate(BaseModel):
     name_en: str = Field(..., min_length=2, max_length=200)
@@ -201,3 +222,59 @@ class VendorRegister(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class SearchSuggestion(BaseModel):
+    id: str # UUID or int as string
+    name: str
+    type: str  # "business", "category"
+    slug: str
+    icon: Optional[str] = None
+
+# ── Contact Message ───────────────────────────────────────────
+class ContactMessageOut(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    phone: Optional[str] = None
+    subject: str
+    message: str
+    is_read: bool
+    created_at: datetime
+    class Config: from_attributes = True
+
+class ContactMessageCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    email: EmailStr
+    phone: Optional[str] = Field(None, max_length=20)
+    subject: str = Field(..., min_length=2, max_length=300)
+    message: str = Field(..., min_length=2)
+
+# ── Booking ──────────────────────────────────────────────────
+class BookingOut(BaseModel):
+    id: UUID
+    business_id: UUID
+    name: str
+    email: str
+    phone: str
+    service: Optional[str] = None
+    date: str
+    time: str
+    status: str
+    created_at: datetime
+    
+    # Nested business info can be useful for vendor view
+    business_name: Optional[str] = None 
+
+    class Config: from_attributes = True
+
+class BookingCreate(BaseModel):
+    business_id: UUID
+    name: str = Field(..., min_length=2, max_length=200)
+    email: EmailStr
+    phone: str = Field(..., min_length=8, max_length=20)
+    service: Optional[str] = None
+    date: str
+    time: str
+
+class BookingUpdateStatus(BaseModel):
+    status: str # pending, confirmed, cancelled

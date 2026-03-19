@@ -12,7 +12,7 @@ from core.auth import get_current_user, require_admin
 from models.models import Business, Category, Governorate, BusinessStatus, ListingType, Service
 from models.schemas import (
     BusinessCard, BusinessDetail, BusinessCreate,
-    BusinessUpdate, AdminBusinessUpdate, PaginatedBusinesses, VendorStats
+    BusinessUpdate, AdminBusinessUpdate, PaginatedBusinesses, VendorStats, SearchSuggestion
 )
 from core.sync import update_business_counts
 
@@ -155,6 +155,111 @@ async def get_my_stats(
         total_views=total_views
     )
 
+# ── Admin: Delete ─────────────────────────────────────────────
+@router.delete("/admin/{business_id}", status_code=204)
+async def delete_business(
+    business_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(require_admin)
+):
+    result = await db.execute(select(Business).where(Business.id == business_id))
+    business = result.scalar_one_or_none()
+    if not business:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    cat_id = business.category_id
+    gov_id = business.governorate_id
+    is_active = business.status == BusinessStatus.active
+
+    await db.delete(business)
+    await db.commit()
+
+    if is_active:
+        await update_business_counts(db, category_id=cat_id, governorate_id=gov_id)
+        await db.commit()
+
+# ── Admin: All businesses (any status) ───────────────────────
+@router.get("/admin/all", response_model=PaginatedBusinesses)
+async def admin_list_all(
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(require_admin),
+    status: Optional[str] = None,
+    page: int = 1,
+    per_page: int = 20
+):
+    q = select(Business)
+    q = load_relations(q, include_owner=True)
+    if status:
+        q = q.where(Business.status == status)
+    q = q.order_by(desc(Business.created_at))
+    count_q = select(func.count()).select_from(q.subquery())
+    total = (await db.execute(count_q)).scalar()
+    offset = (page - 1) * per_page
+    result = await db.execute(q.offset(offset).limit(per_page))
+    items = result.scalars().all()
+    
+    # Map owner email to owner_email field
+    for item in items:
+        if item.owner:
+            item.owner_email = item.owner.email
+            
+    return PaginatedBusinesses(
+        items=items,
+        total=total, page=page,
+        per_page=per_page,
+        pages=(total + per_page - 1) // per_page
+    )
+
+@router.get("/autocomplete", response_model=List[SearchSuggestion])
+async def autocomplete(
+    q: str = Query(..., min_length=1),
+    db: AsyncSession = Depends(get_db)
+):
+    # Search Categories
+    cat_q = select(Category).where(
+        or_(
+            Category.name_en.ilike(f"%{q}%"),
+            Category.name_ar.ilike(f"%{q}%")
+        )
+    ).limit(5)
+    cat_res = await db.execute(cat_q)
+    categories = cat_res.scalars().all()
+
+    # Search Businesses
+    bus_q = select(Business).where(
+        and_(
+            Business.status == BusinessStatus.active,
+            or_(
+                Business.name_en.ilike(f"%{q}%"),
+                Business.name_ar.ilike(f"%{q}%")
+            )
+        )
+    ).limit(10)
+    bus_res = await db.execute(bus_q)
+    businesses = bus_res.scalars().all()
+
+    suggestions = []
+    
+    for c in categories:
+        suggestions.append({
+            "id": str(c.id),
+            "name": c.name_en,
+            "type": "category",
+            "slug": c.slug,
+            "icon": c.icon
+        })
+        
+    for b in businesses:
+        suggestions.append({
+            "id": str(b.id),
+            "name": b.name_en,
+            "type": "business",
+            "slug": b.slug,
+            "icon": None
+        })
+        
+    return suggestions
+
 # ── Public: Get by slug ───────────────────────────────────────
 @router.get("/{slug}", response_model=BusinessDetail)
 async def get_business(slug: str, db: AsyncSession = Depends(get_db)):
@@ -163,7 +268,8 @@ async def get_business(slug: str, db: AsyncSession = Depends(get_db)):
     ).options(
         selectinload(Business.category),
         selectinload(Business.governorate),
-        selectinload(Business.reviews)
+        selectinload(Business.reviews),
+        selectinload(Business.services)
     )
     result = await db.execute(q)
     business = result.scalar_one_or_none()
@@ -299,57 +405,3 @@ async def admin_update_business(
     result = await db.execute(q)
     return result.scalar_one()
 
-# ── Admin: Delete ─────────────────────────────────────────────
-@router.delete("/admin/{business_id}", status_code=204)
-async def delete_business(
-    business_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    _: dict = Depends(require_admin)
-):
-    result = await db.execute(select(Business).where(Business.id == business_id))
-    business = result.scalar_one_or_none()
-    if not business:
-        raise HTTPException(status_code=404, detail="Not found")
-    
-    cat_id = business.category_id
-    gov_id = business.governorate_id
-    is_active = business.status == BusinessStatus.active
-
-    await db.delete(business)
-    await db.commit()
-
-    if is_active:
-        await update_business_counts(db, category_id=cat_id, governorate_id=gov_id)
-        await db.commit()
-
-# ── Admin: All businesses (any status) ───────────────────────
-@router.get("/admin/all", response_model=PaginatedBusinesses)
-async def admin_list_all(
-    db: AsyncSession = Depends(get_db),
-    _: dict = Depends(require_admin),
-    status: Optional[str] = None,
-    page: int = 1,
-    per_page: int = 20
-):
-    q = select(Business)
-    q = load_relations(q, include_owner=True)
-    if status:
-        q = q.where(Business.status == status)
-    q = q.order_by(desc(Business.created_at))
-    count_q = select(func.count()).select_from(q.subquery())
-    total = (await db.execute(count_q)).scalar()
-    offset = (page - 1) * per_page
-    result = await db.execute(q.offset(offset).limit(per_page))
-    items = result.scalars().all()
-    
-    # Map owner email to owner_email field
-    for item in items:
-        if item.owner:
-            item.owner_email = item.owner.email
-            
-    return PaginatedBusinesses(
-        items=items,
-        total=total, page=page,
-        per_page=per_page,
-        pages=(total + per_page - 1) // per_page
-    )

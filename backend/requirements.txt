@@ -14,3 +14,5 @@ httpx==0.27.0
 python-slugify==8.0.4
 Pillow==10.3.0
 boto3==1.34.95
+fastapi-mail==1.4.1
+email-validator==2.1.1

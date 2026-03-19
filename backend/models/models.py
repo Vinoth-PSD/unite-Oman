@@ -125,3 +125,34 @@ class Review(Base):
     is_approved   = Column(Boolean, default=False)
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
     business      = relationship("Business", back_populates="reviews")
+
+class ContactMessage(Base):
+    __tablename__ = "contact_messages"
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name       = Column(String(200), nullable=False)
+    email      = Column(String(200), nullable=False)
+    subject    = Column(String(300), nullable=False)
+    phone      = Column(String(20))
+    message    = Column(Text, nullable=False)
+    is_read    = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class BookingStatus(str, enum.Enum):
+    pending = "pending"
+    confirmed = "confirmed"
+    cancelled = "cancelled"
+
+class Booking(Base):
+    __tablename__ = "bookings"
+    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    name        = Column(String(200), nullable=False)
+    email       = Column(String(200), nullable=False)
+    phone       = Column(String(20), nullable=False)
+    service     = Column(String(200))
+    date        = Column(String(100))
+    time        = Column(String(100))
+    status      = Column(SAEnum(BookingStatus), default=BookingStatus.pending)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    
+    business    = relationship("Business")
