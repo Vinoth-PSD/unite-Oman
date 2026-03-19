@@ -6,16 +6,20 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
-
-    # Allow frontend origin
     ALLOWED_ORIGINS: str = "http://72.61.229.172:5176"
-
     ENVIRONMENT: str = "development"
-
     UPLOAD_DIR: str = "uploads"
-
-    # Backend base URL
     BASE_URL: str = "http://72.61.229.172:8090"
+
+    # Mail Settings
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = ""
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_FROM_NAME: str = "UniteOman"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
 
     @property
     def origins(self) -> List[str]:
@@ -23,6 +27,5 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-
 
 settings = Settings()
