@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { adminApi, businessApi, reviewApi, categoryApi, contactApi, governorateApi, commonApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { Spinner, Pagination } from '@/components/ui'
-import { LayoutDashboard, Building2, Star, LogOut, CheckCircle, XCircle, Eye, Trash2, X, Users, FolderTree, Plus, Edit2, MessageSquare, Mail, Phone, Clock, Zap, Search, MapPin, Image as ImageIcon, Save, Upload, Globe } from 'lucide-react'
+import { LayoutDashboard, Building2, Star, LogOut, CheckCircle, XCircle, Eye, Trash2, X, Users, FolderTree, Plus, Edit2, MessageSquare, Mail, Phone, Clock, Zap, Search, MapPin, Image as ImageIcon, Save, Upload, Globe, ShieldAlert, Download } from 'lucide-react'
 import Logo from '@/components/ui/Logo'
 import toast from 'react-hot-toast'
 
@@ -14,10 +15,12 @@ function AdminLoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
 
+  const navigate = useNavigate()
   const handleSubmit = async e => {
     e.preventDefault()
     setLoading(true)
-    await login(form.email, form.password)
+    const success = await login(form.email, form.password)
+    if (success) navigate('/admin', { replace: true })
     setLoading(false)
   }
 
@@ -78,17 +81,17 @@ function BusinessTable({ defaultStatus = '' }) {
   const approveMutation = useMutation({
     mutationFn: (id) => businessApi.adminUpdate(id, { status: 'active' }),
     onSuccess: () => { toast.success('Business approved'); qc.invalidateQueries(['admin-businesses']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Approval failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
   const rejectMutation = useMutation({
     mutationFn: (id) => businessApi.adminUpdate(id, { status: 'rejected' }),
     onSuccess: () => { toast.success('Business rejected'); qc.invalidateQueries(['admin-businesses']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Rejection failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
   const deleteMutation = useMutation({
     mutationFn: businessApi.adminDelete,
     onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries(['admin-businesses']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Delete failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const statusColor = { active: 'bg-green-100 text-green-700', pending: 'bg-amber-100 text-amber-700', suspended: 'bg-red-100 text-red-700', rejected: 'bg-gray-100 text-gray-500' }
@@ -281,13 +284,13 @@ function MessagesTable() {
   const readMutation = useMutation({
     mutationFn: contactApi.markAsRead,
     onSuccess: () => { toast.success('Marked as read'); qc.invalidateQueries(['admin-messages']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Update failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const deleteMutation = useMutation({
     mutationFn: contactApi.deleteMessage,
     onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries(['admin-messages']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Delete failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   return (
@@ -478,7 +481,7 @@ function CategoriesTable() {
       qc.invalidateQueries(['admin-categories'])
       handleClose()
     },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Save failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const deleteMutation = useMutation({
@@ -487,7 +490,7 @@ function CategoriesTable() {
       toast.success('Category deleted')
       qc.invalidateQueries(['admin-categories'])
     },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Delete failed. Ensure no shops are using this category.')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const handleEdit = (cat) => {
@@ -625,7 +628,7 @@ function VendorsTable({ onViewDashboard }) {
   const deleteMutation = useMutation({
     mutationFn: adminApi.deleteVendor,
     onSuccess: () => { toast.success('Vendor account deleted'); qc.invalidateQueries(['admin-vendors']) },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Failed to delete vendor')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   return (
@@ -727,7 +730,7 @@ function VendorPreview({ vendor, onBack }) {
             <div key={shop.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-hover">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white rounded-xl border border-gray-100 flex items-center justify-center p-1.5 overflow-hidden">
-                  {shop.logo_url ? <img src={shop.logo_url} className="w-full h-full object-cover rounded-lg" /> : <Building2 className="text-gray-300" />}
+                  {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-lg" /> : <Building2 className="text-gray-300" />}
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-ink">{shop.name_en}</h3>
@@ -824,7 +827,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 flex">
+    <div className="min-h-screen bg-gray-50 pt-16 flex overflow-x-hidden">
       <aside className="w-56 bg-ink border-r border-white/8 flex flex-col fixed left-0 top-16 bottom-0 z-30">
         <div className="px-4 py-5 border-b border-white/8">
           <p className="text-[10px] font-bold text-white/30 tracking-widest uppercase">Admin Panel</p>
@@ -850,7 +853,7 @@ function AdminDashboard() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-56 p-4 md:p-8 min-w-0 w-full overflow-x-hidden">
         {renderTab()}
       </main>
     </div>
@@ -860,40 +863,107 @@ function AdminDashboard() {
 export function AdminLoginPage_() { return <AdminLoginPage /> }
 export default function AdminPage() {
   const { isAdmin } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (isAdmin && location.pathname === '/admin/login') {
+      navigate('/admin', { replace: true })
+    }
+  }, [isAdmin, location.pathname, navigate])
+
   return isAdmin ? <AdminDashboard /> : <AdminLoginPage />
 }
 
 // ── Vendor Control (Advanced Components) ──────────────────────
 
 function VendorControlTable() {
+  const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedGov, setSelectedGov] = useState(null)
+  const [selectedStatus, setSelectedStatus] = useState(null)
   const [selectedApptBiz, setSelectedApptBiz] = useState(null)
   const [selectedServiceBiz, setSelectedServiceBiz] = useState(null)
   const [selectedEditBiz, setSelectedEditBiz] = useState(null)
-  const [search, setSearch] = useState('')
-  
+
   const { data: shops, isLoading } = useQuery({ 
       queryKey: ['admin-vendor-control'], 
       queryFn: adminApi.vendorControl 
   })
 
-  // Filter by search
-  const filteredShops = shops?.filter(s => 
-    s.name_en.toLowerCase().includes(search.toLowerCase()) || 
-    s.owner_email?.toLowerCase().includes(search.toLowerCase())
-  )
+  const { data: allCategories } = useQuery({ queryKey: ['admin-categories-filter'], queryFn: categoryApi.list })
+  const { data: allGovernorates } = useQuery({ queryKey: ['admin-govs-filter'], queryFn: governorateApi.list })
 
-  // Group by category
-  const grouped = filteredShops?.reduce((acc, shop) => {
-    const cat = shop.category?.name_en || 'Uncategorized'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(shop)
+  const qc = useQueryClient()
+
+  // Mutations
+  const deleteVendorMutation = useMutation({
+    mutationFn: adminApi.deleteVendor,
+    onSuccess: () => { toast.success('Vendor account purged'); qc.invalidateQueries(['admin-vendor-control']) },
+    onError: (e) => toast.error(getErrorMessage(e))
+  })
+
+  const toggleVendorStatusMutation = useMutation({
+    mutationFn: ({ id, isActive }) => adminApi.toggleVendorStatus(id, isActive),
+    onSuccess: () => { toast.success('Account status synchronized'); qc.invalidateQueries(['admin-vendor-control']) },
+    onError: (e) => toast.error(getErrorMessage(e))
+  })
+
+  const deleteBusinessMutation = useMutation({
+    mutationFn: businessApi.adminDelete,
+    onSuccess: () => { toast.success('Shop record deleted'); qc.invalidateQueries(['admin-vendor-control']) },
+    onError: (e) => toast.error(getErrorMessage(e))
+  })
+
+  const updateBusinessStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => businessApi.adminUpdate(id, { status }),
+    onSuccess: () => { toast.success('Shop status updated'); qc.invalidateQueries(['admin-vendor-control']) },
+    onError: (e) => toast.error(getErrorMessage(e))
+  })
+
+  // Filter by search and dropdowns
+  const filteredShops = shops?.filter(s => {
+    const matchesSearch = !search || 
+      s.name_en.toLowerCase().includes(search.toLowerCase()) || 
+      s.owner_email?.toLowerCase().includes(search.toLowerCase())
+    
+    const matchesCategory = !selectedCategory || s.category?.id?.toString() === selectedCategory?.toString()
+    const matchesGov = !selectedGov || s.governorate?.id?.toString() === selectedGov?.toString()
+    const matchesStatus = !selectedStatus || s.status === selectedStatus
+
+    return matchesSearch && matchesCategory && matchesGov && matchesStatus
+  })
+
+  // Group by vendor owner ID
+  const groupedVendors = filteredShops?.reduce((acc, shop) => {
+    const ownerId = shop.owner?.id || 'ORPHAN_ACCOUNT'
+    if (!acc[ownerId]) {
+      acc[ownerId] = { 
+        owner: shop.owner, 
+        email: shop.owner_email || shop.owner?.email || 'ORPHAN',
+        items: [], 
+        totalViews: 0, 
+        avgRating: 0 
+      }
+    }
+    acc[ownerId].items.push(shop)
+    acc[ownerId].totalViews += (shop.view_count || 0)
+    acc[ownerId].avgRating += (Number(shop.rating_avg) || 0)
     return acc
   }, {})
+
+  // Compute final averages for each vendor
+  if (groupedVendors) {
+    Object.keys(groupedVendors).forEach(id => {
+      const v = groupedVendors[id]
+      v.avgRating = (v.avgRating / v.items.length).toFixed(1)
+    })
+  }
 
   if (isLoading) return <Spinner />
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 pb-20">
       {/* Header with Search */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
         <div className="flex items-center gap-4">
@@ -926,52 +996,238 @@ function VendorControlTable() {
         </div>
       </div>
 
-      {grouped && Object.entries(grouped).length > 0 ? Object.entries(grouped).map(([category, items]) => (
-        <div key={category} className="space-y-6">
-          <div className="flex items-center gap-4">
-             <h3 className="text-[11px] font-black text-ink uppercase tracking-[0.4em] whitespace-nowrap pl-2">{category}</h3>
-             <div className="h-[2px] flex-1 bg-gradient-to-r from-gray-100 to-transparent rounded-full" />
-             <span className="text-[9px] font-bold text-gray-300 uppercase">{items.length} units</span>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-            {items.map(shop => (
-              <div key={shop.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500 flex flex-col gap-6 group relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${shop.status === 'active' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
-                      {shop.status}
+      {/* Advanced Filter Bar */}
+      <div className="space-y-6">
+        {/* Category Scroll */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide px-1">
+           <button 
+             onClick={() => setSelectedCategory(null)}
+             className={`flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${!selectedCategory ? 'bg-pink text-white border-pink shadow-lg shadow-pink/20 scale-105' : 'bg-white text-gray-400 border-gray-100 hover:border-pink/30 hover:text-pink'}`}>
+             All Categories
+           </button>
+           {allCategories?.map(cat => (
+             <button 
+               key={cat.id}
+               onClick={() => setSelectedCategory(cat.id)}
+               className={`flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${selectedCategory === cat.id ? 'bg-pink text-white border-pink shadow-lg shadow-pink/20 scale-105' : 'bg-white text-gray-400 border-gray-100 hover:border-pink/30 hover:text-pink'}`}>
+               <span className="text-base">{cat.icon || '📁'}</span>
+               {cat.name_en}
+             </button>
+           ))}
+        </div>
+
+        {/* Secondary Filters & Bulk Actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/50 p-6 rounded-[2.5rem] border border-gray-100 backdrop-blur-sm">
+           <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm group focus-within:border-pink transition-all">
+                 <MapPin size={14} className="text-gray-300 group-focus-within:text-pink" />
+                 <select 
+                   value={selectedGov || ''} 
+                   onChange={e => setSelectedGov(e.target.value || null)}
+                   className="bg-transparent border-none outline-none text-[11px] font-black uppercase tracking-widest text-ink min-w-[160px]">
+                    <option value="">All Governorates</option>
+                    {allGovernorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
+                 </select>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm group focus-within:border-pink transition-all">
+                 <CheckCircle size={14} className="text-gray-300 group-focus-within:text-pink" />
+                 <select 
+                   value={selectedStatus || ''} 
+                   onChange={e => setSelectedStatus(e.target.value || null)}
+                   className="bg-transparent border-none outline-none text-[11px] font-black uppercase tracking-widest text-ink min-w-[160px]">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active Only</option>
+                    <option value="pending">Pending Only</option>
+                    <option value="rejected">Rejected Only</option>
+                 </select>
+              </div>
+
+              {(selectedCategory || selectedGov || selectedStatus || search) && (
+                 <button 
+                   onClick={() => { setSelectedCategory(null); setSelectedGov(null); setSelectedStatus(null); setSearch('') }}
+                   className="text-pink text-[10px] font-black uppercase tracking-widest hover:underline px-2 transition-all">
+                   Reset All
+                 </button>
+              )}
+           </div>
+
+           {/* Bulk Stats & Export */}
+           <div className="flex items-center gap-6">
+              <div className="hidden xl:flex items-center gap-6 pr-6 border-r border-gray-100">
+                 <div className="text-center">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Active</p>
+                    <p className="text-xs font-black text-emerald-500">{filteredShops?.filter(s => s.status === 'active').length}</p>
+                 </div>
+                 <div className="text-center">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Pending</p>
+                    <p className="text-xs font-black text-amber-500">{filteredShops?.filter(s => s.status === 'pending').length}</p>
+                 </div>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  const csv = [
+                    ['Shop Name', 'Category', 'Vendor', 'Status', 'Views', 'Rating'].join(','),
+                    ...filteredShops?.map(s => [s.name_en, s.category?.name_en, s.owner_email, s.status, s.view_count, s.rating_avg].join(','))
+                  ].join('\n')
+                  const blob = new Blob([csv], { type: 'text/csv' })
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.setAttribute('hidden', '')
+                  a.setAttribute('href', url)
+                  a.setAttribute('download', `vendor-control-export-${new Date().toISOString().split('T')[0]}.csv`)
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                  toast.success('Registry exported to CSV')
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-ink text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
+                 <Download size={14} /> Export CSV
+              </button>
+           </div>
+        </div>
+      </div>
+
+      {groupedVendors && Object.entries(groupedVendors).length > 0 ? Object.entries(groupedVendors).map(([id, data]) => (
+        <div key={id} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-500 hover:shadow-xl hover:border-pink/10 transition-all">
+          {/* Vendor Header */}
+          <div className="bg-gradient-to-r from-gray-50 to-white px-8 py-7 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+             <div className="flex items-center gap-5">
+                <div className="w-14 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm">
+                   <Users size={24} />
+                </div>
+                <div>
+                   <h3 className="text-xl font-display font-normal text-ink mb-1">{data.email}</h3>
+                   <div className="flex items-center gap-3">
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${data.owner?.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                         {data.owner?.is_active ? 'Account Active' : 'Account Suspended'}
+                      </span>
+                      {data.owner?.created_at && (
+                         <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest italic">Since {new Date(data.owner.created_at).toLocaleDateString()}</span>
+                      )}
+                      <span className="text-[9px] font-bold text-ink uppercase tracking-widest">{data.items.length} units</span>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 px-6 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                   <div className="text-center">
+                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Visits</p>
+                      <p className="text-sm font-black text-ink">{data.totalViews.toLocaleString()}</p>
+                   </div>
+                   <div className="w-px h-6 bg-gray-100" />
+                   <div className="text-center">
+                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Rating</p>
+                      <p className="text-sm font-black text-ink">{data.avgRating} ★</p>
                    </div>
                 </div>
 
-                <div className="flex items-center gap-5">
-                  <div className="w-20 h-20 bg-gray-50 rounded-3xl border border-gray-100 flex items-center justify-center text-4xl overflow-hidden p-1.5 shadow-inner group-hover:scale-105 transition-transform duration-500">
-                     {shop.logo_url ? <img src={shop.logo_url} className="w-full h-full object-cover rounded-2xl" /> : (shop.category?.icon || '🏢')}
-                  </div>
-                  <div>
-                    <h4 className="font-display text-2xl font-normal text-ink mb-1 group-hover:text-pink transition-colors line-clamp-1">{shop.name_en}</h4>
-                    <div className="flex flex-col gap-0.5">
-                       <p className="text-[11px] text-gray-500 font-bold uppercase tracking-tight truncate max-w-[200px]">{shop.owner_email || 'ORPHAN_ACCOUNT'}</p>
-                       <p className="text-[9px] text-gray-300 font-black uppercase tracking-widest">{shop.governorate?.name_en || 'REMOTE'}</p>
+                <div className="flex items-center gap-2">
+                   {data.items.some(s => s.status === 'pending') && (
+                      <button 
+                        disabled={updateBusinessStatusMutation.isPending}
+                        onClick={() => {
+                           if(confirm(`Approve all pending shops for ${data.email}?`)) {
+                              data.items.filter(s => s.status === 'pending').forEach(s => {
+                                 updateBusinessStatusMutation.mutate({ id: s.id, status: 'active' })
+                              })
+                           }
+                        }}
+                        className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all"
+                        title="Bulk Approve All Pending">
+                         {updateBusinessStatusMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={18} />}
+                      </button>
+                   )}
+                   <button 
+                     disabled={deleteVendorMutation.isPending || toggleVendorStatusMutation.isPending}
+                     onClick={() => toggleVendorStatusMutation.mutate({ id: data.owner.id, isActive: !data.owner.is_active })}
+                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${data.owner?.is_active ? 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
+                     title={data.owner?.is_active ? 'Suspend Vendor Account' : 'Activate Vendor Account'}>
+                      {toggleVendorStatusMutation.isPending && toggleVendorStatusMutation.variables?.id === data.owner?.id ? <Spinner className="w-4 h-4" /> : <ShieldAlert size={18} />}
+                   </button>
+                   <button 
+                     disabled={deleteVendorMutation.isPending}
+                     onClick={() => { if(confirm(`Completely purge account ${data.email}?`)) deleteVendorMutation.mutate(data.owner.id) }}
+                     className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all"
+                     title="Purge Vendor Profile & All Associated Data">
+                      {deleteVendorMutation.isPending && deleteVendorMutation.variables === data.owner?.id ? <Spinner className="w-4 h-4" /> : <Trash2 size={18} />}
+                   </button>
+                   <button onClick={() => setViewingVendor({ email: data.email })} className="brand-btn px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-pink/10" title="View Full Vendor Dashboard">
+                      Overview
+                   </button>
+                </div>
+             </div>
+          </div>
+
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {data.items.map(shop => (
+              <div key={shop.id} className="group p-6 bg-gray-50 rounded-[2rem] border border-gray-100 hover:bg-white hover:border-pink/20 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
+                {/* Shop Status Banner */}
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                   shop.status === 'active' ? 'bg-emerald-500' : 
+                   shop.status === 'pending' ? 'bg-amber-500' : 'bg-red-500'
+                }`} />
+
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-white rounded-2xl border border-gray-100 flex items-center justify-center p-1.5 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
+                       {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-xl" /> : (shop.category?.icon || '🏢')}
                     </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-ink group-hover:text-pink transition-colors line-clamp-1">{shop.name_en}</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{shop.category?.name_en} • {shop.governorate?.name_en}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${
+                       shop.status === 'active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 
+                       shop.status === 'pending' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200'
+                    }`}>{shop.status}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3">
-                  <button onClick={() => setSelectedApptBiz(shop)} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-blue-50/50 hover:bg-blue-500 hover:text-white transition-all group/btn" title="Manage Appointments">
-                    <Clock size={20} />
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100">Bookings</span>
+                {/* Approve/Reject Actions for Pending */}
+                {shop.status === 'pending' && (
+                   <div className="flex gap-2 mb-6 animate-in slide-in-from-top-2">
+                      <button 
+                        onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'active' })}
+                        className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
+                        <CheckCircle size={14} /> Approve
+                      </button>
+                      <button 
+                        onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'rejected' })}
+                        className="flex-1 bg-white text-gray-400 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-100 hover:bg-red-500 hover:text-white hover:border-red-500 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <XCircle size={14} /> Reject
+                      </button>
+                   </div>
+                )}
+
+                <div className="grid grid-cols-5 gap-2">
+                  <button onClick={() => setSelectedApptBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-blue-500 hover:text-white transition-all group/btn shadow-sm" title="Manage Appointments">
+                    <Clock size={14} />
+                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Appts</span>
                   </button>
-                  <button onClick={() => setSelectedServiceBiz(shop)} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-purple-50/50 hover:bg-purple-500 hover:text-white transition-all group/btn" title="Manage Services">
-                    <Zap size={20} />
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100">Services</span>
+                  <button onClick={() => setSelectedServiceBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-purple-500 hover:text-white transition-all group/btn shadow-sm" title="Manage Services & Menu">
+                    <Zap size={14} />
+                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Serv</span>
                   </button>
-                  <button onClick={() => setSelectedEditBiz(shop)} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-amber-50/50 hover:bg-amber-500 hover:text-white transition-all group/btn" title="Edit Profile">
-                    <Edit2 size={20} />
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100">Edit</span>
+                  <button onClick={() => setSelectedEditBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-amber-500 hover:text-white transition-all group/btn shadow-sm" title="Edit Shop Profile">
+                    <Edit2 size={14} />
+                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Edit</span>
                   </button>
-                  <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-pink-light/50 hover:bg-pink hover:text-white transition-all group/btn" title="View Public">
-                    <Eye size={20} />
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100">Live</span>
+                  <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-pink hover:text-white transition-all group/btn shadow-sm" title="View Public Listing">
+                    <Eye size={14} />
+                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">View</span>
                   </a>
+                  <button 
+                    disabled={deleteBusinessMutation.isPending}
+                    onClick={() => { if(confirm(`Destroy shop record "${shop.name_en}"?`)) deleteBusinessMutation.mutate(shop.id) }} 
+                    className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all group/btn shadow-sm" title="Purge Record Permanently">
+                    {deleteBusinessMutation.isPending && deleteBusinessMutation.variables === shop.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
+                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Purge</span>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1035,7 +1291,7 @@ function AdminEditShopModal({ business, onClose }) {
       queryClient.invalidateQueries(['admin-vendor-control'])
       onClose()
     },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Update failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const handleFileUpload = async (file, type) => {
@@ -1045,7 +1301,7 @@ function AdminEditShopModal({ business, onClose }) {
       else if (type === 'cover') setForm(prev => ({ ...prev, cover_image_url: res.url }))
       else if (type === 'gallery') setForm(prev => ({ ...prev, gallery_urls: [...prev.gallery_urls, res.url] }))
       toast.success('Asset uploaded')
-    } catch { toast.error('Upload failed') }
+    } catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   const handleSubmit = (e) => {
@@ -1054,6 +1310,11 @@ function AdminEditShopModal({ business, onClose }) {
     if (form.category_id) payload.category_id = parseInt(form.category_id)
     if (form.governorate_id) payload.governorate_id = parseInt(form.governorate_id)
     mutation.mutate(payload)
+  }
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url;
   }
 
   return (
@@ -1127,25 +1388,25 @@ function AdminEditShopModal({ business, onClose }) {
 
                  <div className="flex gap-4">
                     <div className="group relative w-24 h-24 bg-white rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm">
-                       {form.logo_url ? <img src={form.logo_url} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
-                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       {form.logo_url ? <img src={getImageUrl(form.logo_url)} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
+                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                           <Edit2 size={14} className="text-white" />
                        </div>
+                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                     <div className="group relative flex-1 h-24 bg-white rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm">
-                       {form.cover_image_url ? <img src={form.cover_image_url} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
-                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'cover')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       {form.cover_image_url ? <img src={getImageUrl(form.cover_image_url)} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
+                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                           <Edit2 size={14} className="text-white" />
                        </div>
+                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'cover')} className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                  </div>
 
                  <div className="grid grid-cols-4 gap-3">
                     {form.gallery_urls.map((url, i) => (
                        <div key={i} className="relative aspect-square bg-white rounded-xl overflow-hidden border border-gray-100 group shadow-inner">
-                          <img src={url} className="w-full h-full object-cover" />
+                          <img src={getImageUrl(url)} className="w-full h-full object-cover" />
                           <button onClick={() => setForm({...form, gallery_urls: form.gallery_urls.filter((_, idx) => idx !== i)})} className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-lg text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all shadow-md"><X size={12} /></button>
                        </div>
                     ))}
@@ -1198,8 +1459,8 @@ function AdminAppointmentModal({ business, onClose }) {
       await adminApi.updateShopBookingStatus(id, status)
       toast.success(`Booking ${status}`)
       refetch()
-    } catch {
-      toast.error('Failed to update status')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
     }
   }
 
@@ -1293,7 +1554,7 @@ function AdminServiceModal({ business, onClose }) {
       setNewS({ name: '', description: '', price: '' })
       toast.success('Service injected successfully')
       refetch()
-    } catch { toast.error('Encryption key mismatch / Injection failed') }
+    } catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   const handleDelete = async (id) => {
@@ -1302,7 +1563,7 @@ function AdminServiceModal({ business, onClose }) {
       await adminApi.deleteShopService(id)
       toast.success('Service purged')
       refetch()
-    } catch { toast.error('Purge operation failed') }
+    } catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   return (

@@ -15,6 +15,7 @@ from models.schemas import (
     BusinessUpdate, AdminBusinessUpdate, PaginatedBusinesses, VendorStats, SearchSuggestion
 )
 from core.sync import update_business_counts
+from sqlalchemy import text
 
 router = APIRouter(prefix="/api/businesses", tags=["businesses"])
 
@@ -43,7 +44,6 @@ async def list_businesses(
     per_page: int = Query(12, ge=1, le=48),
 ):
     query = select(Business).where(Business.status == BusinessStatus.active)
-    query = load_relations(query)
 
     if q:
         query = query.where(
@@ -55,7 +55,15 @@ async def list_businesses(
             )
         )
     if category:
-        query = query.join(Category).where(Category.slug == category)
+        # Include subcategories
+        cat_res = await db.execute(select(Category.id).where(Category.slug == category))
+        p_id = cat_res.scalar()
+        if p_id:
+            sub_res = await db.execute(select(Category.id).where(Category.parent_id == p_id))
+            c_ids = [p_id] + list(sub_res.scalars().all())
+            query = query.where(Business.category_id.in_(c_ids))
+        else:
+            query = query.join(Category).where(Category.slug == category)
     if governorate:
         query = query.join(Governorate).where(Governorate.slug == governorate)
     if plan:
@@ -67,7 +75,11 @@ async def list_businesses(
     if verified is not None:
         query = query.where(Business.is_verified == verified)
 
-    # Sorting
+    # Fast count without eager loading relations or sorting
+    count_q = select(func.count(Business.id)).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    # Now add sorts
     if sort == "featured":
         query = query.order_by(desc(Business.is_featured), desc(Business.listing_type), desc(Business.rating_avg))
     elif sort == "rating":
@@ -77,11 +89,10 @@ async def list_businesses(
     elif sort == "name":
         query = query.order_by(asc(Business.name_en))
 
-    # Count
-    count_q = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_q)).scalar()
+    # Safely attach the eager-loading relations query AFTER the count
+    query = load_relations(query, include_owner=True)
 
-    # Paginate
+    # Paginate and fetch ONLY the visible subset
     offset = (page - 1) * per_page
     result = await db.execute(query.offset(offset).limit(per_page))
     businesses = result.scalars().all()
@@ -100,7 +111,7 @@ async def get_featured(db: AsyncSession = Depends(get_db), limit: int = 6):
     q = select(Business).where(
         and_(Business.status == BusinessStatus.active, Business.is_featured == True)
     ).order_by(desc(Business.listing_type), desc(Business.rating_avg)).limit(limit)
-    q = load_relations(q)
+    q = load_relations(q, include_owner=True)
     result = await db.execute(q)
     return result.scalars().all()
 
@@ -111,7 +122,7 @@ async def get_my_businesses(
     current_user: dict = Depends(get_current_user)
 ):
     q = select(Business).where(Business.owner_id == current_user["sub"])
-    q = load_relations(q)
+    q = load_relations(q, include_owner=True)
     result = await db.execute(q)
     return result.scalars().all()
 
@@ -269,14 +280,15 @@ async def get_business(slug: str, db: AsyncSession = Depends(get_db)):
         selectinload(Business.category),
         selectinload(Business.governorate),
         selectinload(Business.reviews),
-        selectinload(Business.services)
+        selectinload(Business.services),
+        selectinload(Business.owner)
     )
     result = await db.execute(q)
     business = result.scalar_one_or_none()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     # Increment view count
-    business.view_count += 1
+    business.view_count = (business.view_count or 0) + 1
     await db.commit()
     return business
 
@@ -356,7 +368,7 @@ async def update_business(
             
         # Reload with relations
         q = select(Business).where(Business.id == business_id)
-        q = load_relations(q)
+        q = load_relations(q, include_owner=True)
         result = await db.execute(q)
         refresh_business = result.scalar_one()
         
@@ -401,7 +413,6 @@ async def admin_update_business(
     
     # Reload with relations for the response model
     q = select(Business).where(Business.id == business.id)
-    q = load_relations(q)
+    q = load_relations(q, include_owner=True)
     result = await db.execute(q)
     return result.scalar_one()
-

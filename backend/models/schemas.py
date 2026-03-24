@@ -23,8 +23,10 @@ class CategoryOut(BaseModel):
     icon: Optional[str] = None
     cover_image_url: Optional[str] = None
     description: Optional[str] = None
-    business_count: int = 0
-    is_featured: bool = False
+    business_count: Optional[int] = 0
+    is_featured: Optional[bool] = False
+    parent_id: Optional[int] = None
+    has_children: Optional[bool] = False
     class Config: from_attributes = True
 
 class CategoryCreate(BaseModel):
@@ -36,6 +38,7 @@ class CategoryCreate(BaseModel):
     description: Optional[str] = None
     is_featured: bool = False
     sort_order: Optional[int] = 0
+    parent_id: Optional[int] = None
 
 class CategoryUpdate(BaseModel):
     name_en: Optional[str] = None
@@ -46,6 +49,15 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     is_featured: Optional[bool] = None
     sort_order: Optional[int] = None
+    parent_id: Optional[int] = None
+
+# ── User ─────────────────────────────────────────────────────
+class UserOut(BaseModel):
+    id: UUID
+    email: str
+    is_active: bool
+    created_at: datetime
+    class Config: from_attributes = True
 
 # ── Business ─────────────────────────────────────────────────
 class BusinessCard(BaseModel):
@@ -63,14 +75,15 @@ class BusinessCard(BaseModel):
     status: BusinessStatus = BusinessStatus.pending
     plan: PlanType = PlanType.basic
     listing_type: ListingType = ListingType.standard
-    is_verified: bool = False
-    is_featured: bool = False
+    is_verified: Optional[bool] = False
+    is_featured: Optional[bool] = False
     rating_avg: Optional[float] = 0
-    rating_count: int = 0
-    view_count: int = 0
+    rating_count: Optional[int] = 0
+    view_count: Optional[int] = 0
     gallery_urls: Optional[List[str]] = []
     tags: Optional[List[str]] = []
     owner_email: Optional[str] = None
+    owner: Optional[UserOut] = None
     created_at: datetime
     class Config: from_attributes = True
 

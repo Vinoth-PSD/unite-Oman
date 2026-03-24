@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import { categoryApi, governorateApi, businessApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import toast from 'react-hot-toast'
 import { Building2, MapPin, CheckCircle } from 'lucide-react'
@@ -47,12 +48,7 @@ export default function ListBusinessPage() {
       setSuccess(true)
     },
     onError: (e) => {
-      const detail = e.response?.data?.detail
-      if (Array.isArray(detail)) {
-        toast.error(detail[0].msg)
-      } else {
-        toast.error(detail || 'Failed to submit business')
-      }
+      toast.error(getErrorMessage(e))
     }
   })
 

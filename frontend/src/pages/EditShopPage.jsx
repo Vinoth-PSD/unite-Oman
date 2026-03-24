@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Building2, MapPin, Image as ImageIcon, Save, ArrowLeft,X,Upload, Phone, Mail, Globe, Clock, MessageSquare, Plus} from 'lucide-react'
 import { businessApi, categoryApi, governorateApi, commonApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import toast from 'react-hot-toast'
 
@@ -100,7 +101,7 @@ export default function EditShopPage() {
       queryClient.invalidateQueries(['vendor-shops'])
       navigate('/vendor/dashboard/shops')
     },
-    onError: (e) => toast.error(e.response?.data?.detail || 'Update failed')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const handleFileUpload = async (file, type, index = null) => {
@@ -110,8 +111,8 @@ export default function EditShopPage() {
       else if (type === 'cover') setForm(prev => ({ ...prev, cover_image_url: res.url }))
       else if (type === 'gallery') setForm(prev => ({ ...prev, gallery_urls: [...prev.gallery_urls, res.url] }))
       toast.success('Image uploaded!')
-    } catch {
-      toast.error('Upload failed')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
     }
   }
 
@@ -135,6 +136,11 @@ export default function EditShopPage() {
     if (!payload.website) delete payload.website
 
     mutation.mutate(payload)
+  }
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url;
   }
 
   if (isShopLoading) return <Spinner />
@@ -209,7 +215,7 @@ export default function EditShopPage() {
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Business Logo</label>
               <div className="group relative w-32 h-32 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-pink/30 cursor-pointer">
                 {form.logo_url ? (
-                  <img src={form.logo_url} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(form.logo_url)} className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center">
                     <Upload size={24} className="text-gray-300 mx-auto mb-2" />
@@ -230,7 +236,7 @@ export default function EditShopPage() {
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Cover Image</label>
               <div className="group relative w-full h-32 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-pink/30 cursor-pointer">
                 {form.cover_image_url ? (
-                  <img src={form.cover_image_url} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(form.cover_image_url)} className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center">
                     <Upload size={24} className="text-gray-300 mx-auto mb-2" />
@@ -252,7 +258,7 @@ export default function EditShopPage() {
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {form.gallery_urls.map((url, idx) => (
                   <div key={idx} className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 group shadow-sm">
-                    <img src={url} className="w-full h-full object-cover" />
+                    <img src={getImageUrl(url)} className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={(e) => {

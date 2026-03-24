@@ -1,52 +1,58 @@
 import { Link } from 'react-router-dom'
 import Logo from '@/components/ui/Logo'
 
-const cols = [
-  { head: 'Directory', links: [['All Categories','/categories'],['Governorates','/governorates'],['Featured Listings','/businesses?listing_type=featured'],['Recently Added','/businesses?sort=newest'],['Top Rated','/businesses?sort=rating']] },
-  { head: 'Business', links: [['List Your Business','/list-business'],['Pricing Plans','/pricing'],['Claim a Listing','/claim'],['Advertise With Us','/advertise']] },
-  { head: 'Company', links: [['About Us','/about'],['Contact','/contact'],['Privacy Policy','/privacy'],['Terms of Use','/terms']] },
-]
-
 export default function Footer() {
   return (
-    <footer className="bg-ink border-t border-white/5 pt-12 pb-6">
-      <div className="max-w-[1240px] mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-12 mb-10">
-          <div>
-            <Logo />
-            <p className="text-[11px] text-white/20 tracking-widest uppercase font-semibold mt-2 mb-3">Connecting Businesses</p>
-            <p className="text-sm text-white/35 leading-relaxed max-w-[260px]">
-              Oman's most trusted business directory — connecting customers with verified businesses across all 11 governorates.
+    <footer className="footer bg-[var(--ink)] py-[64px] px-0 pb-[32px] border-t border-[rgba(255,255,255,0.07)] text-white">
+      <div className="c">
+        <div className="footer-grid grid md:grid-cols-[2.5fr_1fr_1fr_1fr] gap-[48px] mb-[48px]">
+          <div className="fl-logo">
+            <Link to="/"><Logo theme="dark" style={{ height: '32px', marginBottom: '16px' }} /></Link>
+            <div className="fl-tag text-[10px] text-[rgba(255,255,255,0.25)] tracking-[0.1em] uppercase font-bold mb-[12px]">Oman's Premier Business Directory</div>
+            <p className="fl-desc text-[13px] text-[rgba(255,255,255,0.4)] leading-[1.8] max-w-[280px]">
+              The Sultanate's most trusted platform for connecting verified local businesses with customers across all 11 governorates.
             </p>
-            <div className="flex items-center gap-1.5 mt-4">
-              {['#C8102E','#fff','#009150'].map(c => (
-                <div key={c} className="h-[5px] w-[18px] rounded-sm" style={{ background: c }} />
-              ))}
-              <span className="text-[11px] text-white/20 font-semibold tracking-widest ml-2">PROUDLY OMANI 🇴🇲</span>
-            </div>
           </div>
-          {cols.map(col => (
-            <div key={col.head}>
-              <p className="text-[10px] font-bold tracking-[0.16em] uppercase text-white/30 mb-4">{col.head}</p>
-              <ul className="space-y-2.5">
-                {col.links.map(([label, to]) => (
-                  <li key={to}>
-                    <Link to={to} className="text-sm text-white/40 hover:text-white/80 transition-colors font-medium">{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          
+          <div className="fc">
+            <h4 className="fc-h text-[11px] font-bold tracking-[0.12em] uppercase text-[rgba(255,255,255,0.3)] mb-[20px]">Explore</h4>
+            <ul className="fc-links list-none flex flex-col gap-[10px]">
+              <li><Link to="/businesses" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Find Services</Link></li>
+              <li><Link to="/categories" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Browse Categories</Link></li>
+              <li><Link to="/governorates" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">By Governorate</Link></li>
+              <li><Link to="/pricing" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Business Pricing</Link></li>
+            </ul>
+          </div>
+
+          <div className="fc">
+            <h4 className="fc-h text-[11px] font-bold tracking-[0.12em] uppercase text-[rgba(255,255,255,0.3)] mb-[20px]">For Businesses</h4>
+            <ul className="fc-links list-none flex flex-col gap-[10px]">
+              <li><Link to="/vendor/login" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Vendor Portal</Link></li>
+              <li><Link to="/list-business" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Add Your Shop</Link></li>
+              <li><Link to="/contact" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Advertising</Link></li>
+              <li><Link to="/partner" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Partner Program</Link></li>
+            </ul>
+          </div>
+
+          <div className="fc">
+            <h4 className="fc-h text-[11px] font-bold tracking-[0.12em] uppercase text-[rgba(255,255,255,0.3)] mb-[20px]">Legal & Support</h4>
+            <ul className="fc-links list-none flex flex-col gap-[10px]">
+              <li><Link to="/about" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">About Us</Link></li>
+              <li><Link to="/contact" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Help Center</Link></li>
+              <li><Link to="/privacy" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-[13px] text-[rgba(255,255,255,0.45)] transition-colors hover:text-white">Terms of Use</Link></li>
+            </ul>
+          </div>
         </div>
-        <div className="flex items-center justify-between pt-5 border-t border-white/5">
-          <p className="text-xs text-white/20 font-medium">© 2026 UniteOman. All rights reserved.</p>
-          <div className="flex gap-2">
-            {['in','f','𝕏','▶'].map(s => (
-              <a key={s} href="#"
-                className="w-8 h-8 rounded-md bg-white/5 border border-white/8 flex items-center justify-center text-white/30 hover:bg-pink/20 hover:text-pink/80 hover:border-pink/30 text-xs font-bold transition-all">
-                {s}
-              </a>
-            ))}
+
+        <div className="footer-bot flex flex-col md:flex-row items-center justify-between pt-[24px] border-t border-[rgba(255,255,255,0.07)] gap-[16px]">
+          <div className="footer-copy text-[12px] text-[rgba(255,255,255,0.25)]">
+            © {new Date().getFullYear()} UniteOman. Connecting the Sultanate, one business at a time.
+          </div>
+          <div className="footer-social flex gap-[20px]">
+            <a href="#" className="text-[12px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">Instagram</a>
+            <a href="#" className="text-[12px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">LinkedIn</a>
+            <a href="#" className="text-[12px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">Twitter</a>
           </div>
         </div>
       </div>

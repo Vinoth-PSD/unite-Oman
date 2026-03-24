@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, ChevronRight, Calendar, Clock, CheckCircle } from 'lucide-react'
 import { bookingApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const TIMES = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM']
@@ -56,7 +57,7 @@ export default function BookingModal({ business, onClose }) {
       })
       setBooked(true)
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Booking failed. Please try again.')
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

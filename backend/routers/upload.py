@@ -26,8 +26,8 @@ async def upload_file(
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Return local URL (assumes /uploads mount in main.py)
-        url = f"{settings.BASE_URL}/{settings.UPLOAD_DIR}/{filename}"
+        # Return relative URL so frontend can prepend VITE_API_URL
+        url = f"/{settings.UPLOAD_DIR}/{filename}"
         
         return {"url": url}
         

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { adminApi, vendorAuthApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const AuthContext = createContext(null)
@@ -23,8 +24,8 @@ export function AuthProvider({ children }) {
       setAdmin({ token: access_token })
       toast.success('Admin logged in successfully')
       return true
-    } catch {
-      toast.error('Invalid admin credentials')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
       return false
     }
   }, [])
@@ -44,7 +45,7 @@ export function AuthProvider({ children }) {
       toast.success('Logged in successfully')
       return true
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Invalid credentials')
+      toast.error(getErrorMessage(e))
       return false
     }
   }, [])
@@ -57,7 +58,7 @@ export function AuthProvider({ children }) {
       toast.success('Registration submitted for approval')
       return true
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Registration failed')
+      toast.error(getErrorMessage(e))
       return false
     }
   }, [])

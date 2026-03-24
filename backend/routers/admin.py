@@ -59,6 +59,24 @@ async def delete_vendor(user_id: str, db: AsyncSession = Depends(get_db), _: dic
     await db.delete(user)
     await db.commit()
 
+@router.patch("/vendors/{user_id}/status", response_model=dict)
+async def toggle_vendor_status(
+    user_id: UUID, 
+    payload: dict, 
+    db: AsyncSession = Depends(get_db), 
+    _: dict = Depends(require_admin)
+):
+    """Toggle a vendor's active status."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    
+    current = user.is_active
+    user.is_active = payload.get("is_active", not current)
+    await db.commit()
+    return {"status": "success", "is_active": user.is_active}
+
 @router.get("/vendors/{vendor_id}/stats", response_model=VendorStats)
 async def get_vendor_stats(
     vendor_id: UUID, 

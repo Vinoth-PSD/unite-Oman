@@ -21,32 +21,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-from fastapi import Request
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        response_body = b""
-        async for chunk in response.body_iterator:
-            response_body += chunk
-        
-        from fastapi.responses import Response
-        new_response = Response(
-            content=response_body,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-            media_type=response.media_type
-        )
-        
-        log_msg = f"{request.method} {request.url} -> {response.status_code} | Body: {response_body[:200].decode(errors='ignore')}\n"
-        with open("/tmp/debug_requests.log", "a") as f:
-            f.write(log_msg)
-            
-        return new_response
-    except Exception as e:
-        with open("/tmp/debug_requests.log", "a") as f:
-            f.write(f"{request.method} {request.url} -> ERROR: {str(e)}\n")
-        raise e
 
 app.add_middleware(
     CORSMiddleware,

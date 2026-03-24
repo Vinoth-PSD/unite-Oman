@@ -3,6 +3,7 @@ import { useNavigate, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import { businessApi, reviewApi, serviceApi, bookingApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import toast from 'react-hot-toast'
 import { 
@@ -324,7 +325,7 @@ function VendorServices() {
       setNewService({ name: '', description: '', price: '' })
       setIsAdding(false)
       refetch()
-    } catch { toast.error('Failed to add service') }
+    } catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   const handleDelete = async (id) => {
@@ -332,7 +333,7 @@ function VendorServices() {
     try {
       await serviceApi.delete(id)
       refetch()
-    } catch { toast.error('Failed to delete service') }
+    } catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   return (
@@ -422,8 +423,8 @@ function VendorAppointments() {
       await bookingApi.updateStatus(id, status)
       toast.success(`Booking ${status}`)
       refetch()
-    } catch {
-      toast.error('Failed to update status')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
     }
   }
 

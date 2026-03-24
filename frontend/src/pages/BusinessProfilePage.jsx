@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { MapPin, Phone, Mail, Globe, Clock, ChevronLeft, Send, Heart, Calendar, Star } from 'lucide-react'
 import { businessApi, reviewApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import BookingModal from '@/components/ui/BookingModal'
 import AISummary from '@/components/ui/AISummary'
@@ -122,7 +123,7 @@ export default function BusinessProfilePage() {
       qc.invalidateQueries({ queryKey: ['reviews', business.id] })
       qc.invalidateQueries({ queryKey: ['business', slug] })
     },
-    onError: () => toast.error('Failed to submit review')
+    onError: (e) => toast.error(getErrorMessage(e))
   })
 
   if (isLoading) return (
@@ -134,10 +135,23 @@ export default function BusinessProfilePage() {
     </div>
   )
 
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url;
+  }
+
   const { name_en, name_ar, description, short_description, category, governorate,
-    cover_image_url, logo_url, gallery_urls = [], phone, whatsapp, email, website,
+    cover_image_url: rawCover, logo_url: rawLogo, gallery_urls: rawGallery, phone, whatsapp, email, website,
     address, is_verified, listing_type, plan, rating_avg, rating_count,
-    business_hours = {}, tags = [] } = business
+    business_hours: rawHours, tags: rawTags, services: rawServices } = business
+
+  const cover_image_url = getImageUrl(rawCover)
+  const logo_url = getImageUrl(rawLogo)
+  const gallery_urls = (rawGallery || []).map(getImageUrl)
+  
+  const business_hours = rawHours || {}
+  const tags = rawTags || []
+  const services = rawServices || []
 
   const priceRange = plan === 'enterprise' ? 'OMR 50–200' : plan === 'professional' ? 'OMR 10–80' : null
   const today = DAYS[new Date().getDay()]
@@ -301,30 +315,56 @@ export default function BusinessProfilePage() {
                 )}
 
                 {/* Services tab */}
+
+                
                 {tab === 'services' && (
                   <div>
-                    {tags.length === 0 ? (
+                    {services.length === 0 && tags.length === 0 ? (
                       <p className="text-sm text-gray-400">No services listed.</p>
                     ) : (
                       <div className="space-y-3">
-                        {tags.map((tag, i) => (
-                          <div key={tag}
-                            className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-purple/20 hover:bg-purple/2 transition-all">
-                            <div>
-                              <p className="font-semibold text-sm text-ink">{tag}</p>
-                              <p className="text-xs text-gray-400 mt-0.5">Professional service</p>
+                        {services.length > 0 ? (
+                          services.map((s) => (
+                            <div key={s.id}
+                              className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-purple/20 hover:bg-purple/2 transition-all">
+                              <div>
+                                <p className="font-semibold text-sm text-ink">{s.name}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {s.description || 'Professional service'} 
+                                  {s.price && <span className="text-pink ml-1">({s.price})</span>}
+                                </p>
+                              </div>
+                              <button onClick={() => setShowBooking(true)}
+                                className="text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all"
+                                style={{ background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' }}>
+                                Book
+                              </button>
                             </div>
-                            <button onClick={() => setShowBooking(true)}
-                              className="text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all"
-                              style={{ background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' }}>
-                              Book
-                            </button>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          tags.map((tag, i) => (
+                            <div key={i}
+                              className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-purple/20 hover:bg-purple/2 transition-all">
+                              <div>
+                                <p className="font-semibold text-sm text-ink">{tag}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Professional service</p>
+                              </div>
+                              <button onClick={() => setShowBooking(true)}
+                                className="text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all"
+                                style={{ background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' }}>
+                                Book
+                              </button>
+                            </div>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>
                 )}
+
+
+
+
 
                 {/* Reviews tab */}
                 {tab === 'reviews' && (
@@ -397,14 +437,19 @@ export default function BusinessProfilePage() {
                         </div>
                       </div>
                     )}
-                    {/* Map placeholder */}
-                    <div className="w-full h-52 rounded-2xl bg-gray-100 flex items-center justify-center border border-gray-200">
+                    {/* Map placeholder -> Google Maps Link */}
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((business?.name_en || '') + ' ' + (address || '') + ' Oman')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-52 rounded-2xl bg-gray-100 flex flex-col items-center justify-center border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer group"
+                    >
                       <div className="text-center">
-                        <div className="text-3xl mb-2">🗺️</div>
-                        <p className="text-sm text-gray-400 font-medium">Map view</p>
-                        <p className="text-xs text-gray-300">Connect Google Maps API</p>
+                        <div className="text-3xl mb-2 transition-transform group-hover:scale-110">🗺️</div>
+                        <p className="text-sm text-gray-500 font-bold group-hover:text-ink transition-colors">Open in Google Maps</p>
+                        <p className="text-xs text-gray-400 mt-1 font-medium">Get directions to {business?.name_en}</p>
                       </div>
-                    </div>
+                    </a>
                   </div>
                 )}
               </div>

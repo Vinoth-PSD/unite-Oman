@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Mail, Phone, MapPin, Send, MessageSquare, Globe, ArrowRight } from 'lucide-react'
 import { contactApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 
 export default function ContactPage() {
@@ -24,7 +25,7 @@ export default function ContactPage() {
       // toast is already imported and configured in App.jsx
     } catch (err) {
       console.error('Contact error:', err)
-      toast.error(err.response?.data?.detail || 'Failed to send message. Please try again.')
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

@@ -46,7 +46,13 @@ export const businessApi = {
 
 // ── Categories ────────────────────────────────────────────────
 export const categoryApi = {
-  list: (featuredOnly = false) => api.get('/api/categories', { params: { featured_only: featuredOnly } }).then(r => r.data),
+  list: (isFeatured, parentId, parentSlug) => {
+    let url = `/api/categories?`
+    if (isFeatured !== null && isFeatured !== undefined) url += `is_featured=${isFeatured}&`
+    if (parentId !== null && parentId !== undefined && parentId !== '') url += `parent_id=${parentId}&`
+    if (parentSlug) url += `parent_slug=${parentSlug}&`
+    return api.get(url).then(r => r.data)
+  },
   get: (slug) => api.get(`/api/categories/${slug}`).then(r => r.data),
 }
 
@@ -71,6 +77,7 @@ export const adminApi = {
   stats: () => api.get('/api/admin/stats').then(r => r.data),
   listVendors: () => api.get('/api/admin/vendors').then(r => r.data),
   deleteVendor: (id) => api.delete(`/api/admin/vendors/${id}`),
+  toggleVendorStatus: (id, isActive) => api.patch(`/api/admin/vendors/${id}/status`, { is_active: isActive }).then(r => r.data),
   getVendorStats: (id) => api.get(`/api/admin/vendors/${id}/stats`).then(r => r.data),
   getVendorBusinesses: (id) => api.get(`/api/admin/vendors/${id}/businesses`).then(r => r.data),
   

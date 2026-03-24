@@ -34,76 +34,56 @@ const GOVERNORATE_ICONS = {
 
 // ── BusinessCard ──────────────────────────────────────────────
 export function BusinessCard({ business }) {
-  const [showBooking, setShowBooking] = useState(false)
   const { name_en, slug, category, governorate,
-    cover_image_url, listing_type, is_verified, plan,
-    rating_avg, rating_count, tags = [] } = business
+    cover_image_url, logo_url, listing_type, is_verified, plan,
+    rating_avg, rating_count, tags: rawTags } = business
+  const tags = rawTags || []
 
   const priceRange = plan === 'enterprise' ? 'OMR 50–200' : plan === 'professional' ? 'OMR 10–80' : null
   const starsFull = Math.round(rating_avg || 0)
 
+  const bgImg = cover_image_url || logo_url;
+  const imgSrc = bgImg ? (bgImg.startsWith('/') ? import.meta.env.VITE_API_URL + bgImg : bgImg) : null;
+
   return (
-    <>
-      <div className="group bg-white border-[1.5px] border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-pink/40 hover:shadow-xl flex flex-col">
-        <Link to={`/business/${slug}`} className="block">
-          <div className="h-44 bg-gray-100 relative overflow-hidden">
-            {cover_image_url
-              ? <img src={cover_image_url} alt={name_en} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              : <div className="w-full h-full flex items-center justify-center text-ink/20" style={{ background: 'linear-gradient(135deg,#EDE5F7,#FCE8F1)' }}>
-                  {(() => {
-                    const CatIcon = category ? (CATEGORY_ICONS[category.slug] || Briefcase) : Briefcase;
-                    return <CatIcon size={48} strokeWidth={1.5} />
-                  })()}
-                </div>
-            }
-            <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-              {is_verified && <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-green-600/90 text-white">✓ Verified</span>}
-              {listing_type !== 'standard' && (
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: 'linear-gradient(90deg,#E8B84B,#D97706)' }}>
-                  ⭐ {listing_type === 'sponsored' ? 'Sponsored' : 'Featured'}
-                </span>
-              )}
+    <Link to={`/business/${slug}`} className="block">
+      <div className="card hover:cursor-pointer">
+        <div className="card-img">
+          {imgSrc ? (
+            <img src={imgSrc} alt={name_en} />
+          ) : (
+            <div className="card-placeholder">🏢</div>
+          )}
+          {is_verified && <div className="cv">✓ Verified</div>}
+          {listing_type === 'sponsored' && <div className="cp">Sponsored</div>}
+          {listing_type === 'featured' && <div className="cf">Featured</div>}
+        </div>
+        <div className="card-body">
+          {category && <div className="card-cat">{category.name_en}</div>}
+          <div className="card-name">{name_en}</div>
+          
+          <div className="card-rating">
+            <div className="card-stars">
+              {[1,2,3,4,5].map(n => (
+                <span key={n} className={`star ${n <= starsFull ? 'on' : 'off'}`}>★</span>
+              ))}
             </div>
-            {priceRange && (
-              <div className="absolute bottom-2.5 right-2.5 bg-ink/80 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-sm">{priceRange}</div>
-            )}
+            {rating_count > 0 && <span className="card-rv">{Number(rating_avg).toFixed(1)}</span>}
+            <span className="card-rc">({rating_count || 0})</span>
           </div>
-        </Link>
-        <div className="p-4 flex flex-col flex-1">
-          <Link to={`/business/${slug}`} className="flex-1">
-            {category && (
-              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase mb-1 brand-text">
-                {(() => {
-                  const CatIcon = CATEGORY_ICONS[category.slug] || Briefcase;
-                  return <CatIcon size={12} strokeWidth={2.5} />
-                })()}
-                {category.name_en}
-              </div>
-            )}
-            <h3 className="text-base font-bold text-ink mb-1 leading-snug">{name_en}</h3>
-            {rating_count > 0 && (
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="flex">{[1,2,3,4,5].map(n => <span key={n} className={`text-sm ${n <= starsFull ? 'text-amber-400' : 'text-gray-200'}`}>★</span>)}</div>
-                <span className="text-sm font-bold text-ink">{Number(rating_avg).toFixed(1)}</span>
-                <span className="text-xs text-gray-400">({rating_count})</span>
-              </div>
-            )}
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {tags.slice(0, 3).map(t => <span key={t} className="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t}</span>)}
-              </div>
-            )}
-            {governorate && <div className="text-xs text-gray-400">📍 {governorate.name_en}</div>}
-          </Link>
-          <button onClick={() => setShowBooking(true)}
-            className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#1B5E3B,#2D7A55)' }}>
-            View &amp; Book
-          </button>
+          
+          {tags.length > 0 && (
+            <div className="card-tags">
+              {tags.slice(0, 3).map(t => <span key={t} className="tag">{t}</span>)}
+            </div>
+          )}
+          
+          <div className="card-loc">📍 {governorate ? governorate.name_en : 'Oman'} {priceRange && `• ${priceRange}`}</div>
+          
+          <div className="card-cta">View &amp; Book</div>
         </div>
       </div>
-      {showBooking && <BookingModal business={business} onClose={() => setShowBooking(false)} />}
-    </>
+    </Link>
   )
 }
 
@@ -111,17 +91,23 @@ export function BusinessCard({ business }) {
 const CAT_COLORS = ['#FCE8F1','#DBEAFE','#FEF3C7','#D1FAE5','#FEF9C3','#EDE5F7','#CFFAFE','#FEF0EA','#FFE4E6','#E0E7FF','#CCFBF1','#ECFCCB']
 
 export function CategoryIconCard({ category, index = 0 }) {
-  const { name_en, slug, business_count } = category
+  const { id, name_en, slug, business_count, has_children } = category
   const Icon = CATEGORY_ICONS[slug] || Briefcase
 
+  // If this category has subcategories, link to the subcategory listing page
+  const linkTo = has_children
+    ? `/categories?parent_slug=${slug}&name=${encodeURIComponent(name_en)}`
+    : `/businesses?category=${slug}`
+
   return (
-    <Link to={`/businesses?category=${slug}`}
+    <Link to={linkTo}
       className="group bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
       <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
         style={{ background: CAT_COLORS[index % CAT_COLORS.length] }}>
         <Icon size={28} strokeWidth={1.5} />
       </div>
       <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
+      {has_children && <p className="text-[9px] uppercase tracking-widest font-bold text-pink mb-0.5">Explore →</p>}
       <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
         {business_count || 0} {business_count === 1 ? 'Business' : 'Businesses'}
       </p>
@@ -131,13 +117,22 @@ export function CategoryIconCard({ category, index = 0 }) {
 
 // ── CategoryCard (image bg version) ──────────────────────────
 export function CategoryCard({ category, large = false }) {
-  const { name_en, name_ar, slug, cover_image_url, business_count } = category
+  const { name_en, name_ar, slug, cover_image_url, business_count, has_children } = category
   const Icon = CATEGORY_ICONS[slug] || Briefcase
 
+  const linkTo = has_children
+    ? `/categories?parent_slug=${slug}&name=${encodeURIComponent(name_en)}`
+    : `/businesses?category=${slug}`
+
   return (
-    <Link to={`/businesses?category=${slug}`}
+    <Link to={linkTo}
       className={`group relative rounded-2xl overflow-hidden cursor-pointer block transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${large ? 'min-h-[240px]' : 'aspect-[4/3]'}`}>
-      <div className="absolute inset-0 bg-gray-800" style={cover_image_url ? { backgroundImage:`url(${cover_image_url})`,backgroundSize:'cover',backgroundPosition:'center' } : {}} />
+      <div className="absolute inset-0 bg-gray-800" 
+        style={cover_image_url ? { 
+          backgroundImage:`url(${cover_image_url.startsWith('/') ? import.meta.env.VITE_API_URL + cover_image_url : cover_image_url})`,
+          backgroundSize:'cover',
+          backgroundPosition:'center' 
+        } : {}} />
       <div className="absolute inset-0" style={{ background:'linear-gradient(165deg,rgba(10,6,20,.1) 0%,rgba(10,6,20,.72) 100%)' }} />
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background:'rgba(232,49,122,.08)' }} />
       <button className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xs group-hover:bg-pink group-hover:border-pink transition-all">↗</button>
@@ -147,7 +142,7 @@ export function CategoryCard({ category, large = false }) {
         </div>
         <h3 className={`font-bold text-white leading-tight mb-0.5 ${large ? 'text-xl' : 'text-sm'}`}>{name_en}</h3>
         <p className="text-[10px] font-bold text-white/60 tracking-wider">
-          {business_count || 0} {business_count === 1 ? 'Shop' : 'Shops'}
+          {has_children ? 'Browse Subcategories →' : `${business_count || 0} ${business_count === 1 ? 'Shop' : 'Shops'}`}
         </p>
         {name_ar && <p className="text-xs text-white/45 mb-1">{name_ar}</p>}
       </div>
@@ -197,18 +192,18 @@ export function EmptyState({ icon = '🔍', title, description, action }) {
 export function Pagination({ page, pages, onPage }) {
   if (pages <= 1) return null
   return (
-    <div className="flex items-center justify-center gap-2 mt-8">
-      <button disabled={page === 1} onClick={() => onPage(page - 1)}
-        className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:border-pink/40 transition-all">← Prev</button>
+    <div className="pag">
+      <button className="pag-btn" disabled={page === 1} onClick={() => onPage(page - 1)}>
+        ← Prev
+      </button>
       {Array.from({ length: Math.min(pages, 7) }, (_, i) => i + 1).map(p => (
-        <button key={p} onClick={() => onPage(p)}
-          className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${p === page ? 'text-white' : 'border border-gray-200 hover:border-pink/40'}`}
-          style={p === page ? { background:'linear-gradient(90deg,#E8317A,#5B2D8E)' } : {}}>
+        <button key={p} className={`pag-btn ${p === page ? 'on' : ''}`} onClick={() => onPage(p)}>
           {p}
         </button>
       ))}
-      <button disabled={page === pages} onClick={() => onPage(page + 1)}
-        className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:border-pink/40 transition-all">Next →</button>
+      <button className="pag-btn" disabled={page === pages} onClick={() => onPage(page + 1)}>
+        Next →
+      </button>
     </div>
   )
 }
