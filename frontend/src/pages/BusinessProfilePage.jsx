@@ -1,68 +1,38 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MapPin, Phone, Mail, Globe, Clock, ChevronLeft, Send, Heart, Calendar, Star } from 'lucide-react'
 import { businessApi, reviewApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
-import BookingModal from '@/components/ui/BookingModal'
-import AISummary from '@/components/ui/AISummary'
+import { useAuth } from '@/context/AuthContext'
+import { Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 function StarPicker({ value, onChange }) {
   const [hover, setHover] = useState(0)
   return (
-    <div className="flex gap-1">
+    <div className="wr-stars">
       {[1,2,3,4,5].map(n => (
-        <button key={n} type="button"
+        <span key={n}
           onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
           onClick={() => onChange(n)}
-          className={`transition-all ${n <= (hover || value) ? 'text-amber-400 scale-110' : 'text-gray-200 hover:text-gray-300'}`}>
-          <Star size={20} fill={n <= (hover || value) ? 'currentColor' : 'none'} strokeWidth={1.5} />
-        </button>
+          className={`wr-star ${n <= (hover || value) ? 'on' : ''}`}>
+          ★
+        </span>
       ))}
     </div>
   )
 }
 
-function RatingStars({ rating, size = 14 }) {
+function RatingStars({ rating }) {
   return (
-    <div className="flex gap-0.5">
+    <div className="rt-stars">
       {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={size}
-          fill={n <= Math.round(rating) ? '#fbbf24' : 'none'}
-          className={n <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}
-          strokeWidth={1.5}
-        />
+        <span key={n} className={`rt-star ${n <= Math.round(rating) ? 'on' : 'off'}`}>★</span>
       ))}
-    </div>
-  )
-}
-
-function RatingBreakdown({ reviews }) {
-  const total = reviews.length
-  const counts = [0, 0, 0, 0, 0, 0] // index 1-5
-  reviews.forEach(r => counts[Math.floor(r.rating)]++)
-
-  return (
-    <div className="space-y-2 mt-4">
-      {[5, 4, 3, 2, 1].map(num => {
-        const count = counts[num] || 0
-        const percentage = total > 0 ? (count / total) * 100 : 0
-        return (
-          <div key={num} className="flex items-center gap-3 text-[10px] font-bold">
-            <span className="w-3 text-gray-400">{num}</span>
-            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }} />
-            </div>
-            <span className="w-8 text-right text-gray-400">{count}</span>
-          </div>
-        )
-      })}
     </div>
   )
 }
@@ -97,11 +67,15 @@ function Lightbox({ images, index, onClose, onPrev, onNext }) {
 
 export default function BusinessProfilePage() {
   const { slug } = useParams()
+  const { user, isAdmin } = useAuth()
   const qc = useQueryClient()
-  const [tab, setTab] = useState('about')
-  const [saved, setSaved] = useState(false)
-  const [showBooking, setShowBooking] = useState(false)
   const [lbIndex, setLbIndex] = useState(null)
+  const [isStuck, setIsStuck] = useState(false)
+  
+  // States
+  const [isBooked, setIsBooked] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiText, setAiText] = useState('Click Generate for an AI-powered overview of this business.')
   const [reviewForm, setReviewForm] = useState({ reviewer_name: '', rating: 0, comment: '' })
 
   const { data: business, isLoading, error } = useQuery({
@@ -125,12 +99,20 @@ export default function BusinessProfilePage() {
     },
     onError: (e) => toast.error(getErrorMessage(e))
   })
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsStuck(window.scrollY > 40)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center pt-16"><Spinner className="w-10 h-10" /></div>
+    <div className="min-h-screen flex items-center justify-center"><Spinner className="w-10 h-10" /></div>
   )
   if (error || !business) return (
-    <div className="min-h-screen flex items-center justify-center pt-16 text-center">
+    <div className="min-h-screen flex items-center justify-center text-center">
       <div><div className="text-5xl mb-4">🏢</div><h2 className="text-xl font-bold text-ink mb-2">Business not found</h2><Link to="/businesses" className="brand-text text-sm font-bold">← Back to listings</Link></div>
     </div>
   )
@@ -140,402 +122,155 @@ export default function BusinessProfilePage() {
     return url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url;
   }
 
-  const { name_en, name_ar, description, short_description, category, governorate,
-    cover_image_url: rawCover, logo_url: rawLogo, gallery_urls: rawGallery, phone, whatsapp, email, website,
-    address, is_verified, listing_type, plan, rating_avg, rating_count,
-    business_hours: rawHours, tags: rawTags, services: rawServices } = business
+  const { name_en, description, short_description, category, governorate,
+    cover_image_url: rawCover, gallery_urls: rawGallery, phone, whatsapp, email, website,
+    address, is_verified, listing_type, plan, rating_avg, rating_count, view_count, has_deal, deal_text,
+    business_hours: rawHours, tags: rawTags, services: rawServices, owner_id } = business
 
-  const cover_image_url = getImageUrl(rawCover)
-  const logo_url = getImageUrl(rawLogo)
-  const gallery_urls = (rawGallery || []).map(getImageUrl)
+  const isOwner = user?.id === owner_id || isAdmin
+
+  const coverUrl = getImageUrl(rawCover)
+  const validGallery = [coverUrl, ...(rawGallery || []).map(getImageUrl)].filter(Boolean)
+  
+  const FALLBACK_IMAGES = [
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80',
+    'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80',
+    'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80',
+    'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?w=800&q=80',
+    'https://images.unsplash.com/photo-1556761175-5973dc0f32b7?w=800&q=80'
+  ]
+  
+  const displayGallery = [...validGallery]
+  while (displayGallery.length < 3) displayGallery.push(FALLBACK_IMAGES[displayGallery.length])
   
   const business_hours = rawHours || {}
   const tags = rawTags || []
-  const services = rawServices || []
+  const services = rawServices?.length > 0 ? rawServices : []
 
-  const priceRange = plan === 'enterprise' ? 'OMR 50–200' : plan === 'professional' ? 'OMR 10–80' : null
   const today = DAYS[new Date().getDay()]
-  const todayHours = business_hours[today.toLowerCase()]
+  
+  const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg || 0).toFixed(1)
+  const totalReviews = reviews.length || rating_count || 0
 
-  const tabs = ['About', 'Services', 'Reviews', 'Location']
+  const handleAiGen = () => {
+    setAiLoading(true)
+    setAiText('')
+    setTimeout(() => {
+      setAiLoading(false)
+      setAiText(`AI summary: ${name_en} is highly rated (${avgRating} stars from ${totalReviews} reviews) and specializes in ${category?.name_en || 'various services'}. Users consistently praise their promptness and quality of work. Located in ${governorate?.name_en || 'Oman'}.`)
+    }, 1500)
+  }
 
   return (
-    <div className="min-h-screen pt-16" style={{ background: '#F5F2EC' }}>
-
-      {/* Hero cover */}
-      <div className="relative h-52 overflow-hidden"
-        style={{ background: cover_image_url ? `url(${cover_image_url}) center/cover` : 'linear-gradient(135deg,#2D1A0E,#1A1427)' }}>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-        {/* Back link */}
-        <div className="absolute top-5 left-0 right-0 max-w-[1240px] mx-auto px-6">
-          <Link to="/businesses" className="inline-flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-semibold transition-colors bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <ChevronLeft size={15} /> Back to listings
-          </Link>
+    <>
+      <div className="wrap pt-4">
+        {/* BREADCRUMB */}
+        <div className={`bc ${isStuck ? 'stuck' : ''}`}>
+          <Link to="/">Home</Link>
+          <span className="bc-sep">/</span>
+          <Link to="/businesses">Services</Link>
+          <span className="bc-sep">/</span>
+          <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{name_en}</span>
         </div>
 
-        {/* Hero info */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-[1240px] mx-auto px-6 pb-5">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              {/* Status badges */}
-              <div className="flex items-center gap-2 mb-2">
-                {is_verified && (
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1">✓ Verified Business</span>
-                )}
-                {listing_type !== 'standard' && (
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1">⭐ Featured</span>
-                )}
-              </div>
-              <h1 className="font-display text-[clamp(24px,4vw,38px)] text-white font-normal tracking-tight mb-1">{name_en}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-white/75">
-                {(reviews.length > 0 || rating_count > 0) && (
-                  <span className="flex items-center gap-2">
-                    <RatingStars rating={reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) : (rating_avg || 0)} />
-                    <strong className="text-white">
-                      {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg).toFixed(1)}
-                    </strong> 
-                    ({reviews.length || rating_count} reviews)
-                  </span>
-                )}
-                {governorate && <span className="flex items-center gap-1">📍 {governorate.name_en}</span>}
-                {priceRange && <span className="flex items-center gap-1">💰 {priceRange}</span>}
-              </div>
-            </div>
-            {/* Hero actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => { setSaved(s => !s); toast.success(saved ? 'Removed from saved' : 'Saved!') }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${saved ? 'bg-pink/10 border-pink text-pink' : 'bg-white/10 border-white/30 text-white hover:border-white/60'}`}>
-                <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
-                {saved ? 'Saved' : 'Save'}
-              </button>
-              <button onClick={() => setShowBooking(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg,#1B5E3B,#2D7A55)' }}>
-                <Calendar size={15} /> Book Now
-              </button>
-            </div>
+        {/* PHOTO MOSAIC */}
+        <div className="mosaic relative group/mosaic">
+          {isOwner && (
+             <Link to={`/vendor/edit-shop/${business.id}`} 
+               className="absolute top-4 right-4 z-[20] bg-white/90 backdrop-blur shadow-sm p-3 rounded-xl border border-line flex items-center gap-2 text-[13px] font-bold hover:bg-white transition-all">
+                ⚙️ Manage Images
+             </Link>
+          )}
+          <div className="mosaic-main cursor-pointer" onClick={() => setLbIndex(0)}>
+            <img src={displayGallery[0]} alt="Main" />
           </div>
+          {displayGallery.slice(1, 3).map((img, i) => (
+             <div key={i} className="mosaic-sub cursor-pointer" onClick={() => setLbIndex(i+1)}>
+               <img src={img} alt="" />
+             </div>
+          ))}
+          <button className="mosaic-btn" onClick={() => setLbIndex(0)}>⊞ View all photos</button>
         </div>
-      </div>
 
-      {/* Main content */}
-      <div className="max-w-[1240px] mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-
-          {/* Left column */}
-          <div className="space-y-4">
-
-            {/* AI Summary */}
-            <AISummary business={business} />
-
-            {/* Tabs */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="flex border-b border-gray-100">
-                {tabs.map(t => (
-                  <button key={t} onClick={() => setTab(t.toLowerCase())}
-                    className={`flex-1 py-3 text-sm font-semibold transition-all ${
-                      tab === t.toLowerCase()
-                        ? 'text-purple border-b-2 border-purple bg-purple/3'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}>
-                    {t}
-                  </button>
-                ))}
+        <div className="columns">
+          {/* LEFT COLUMN */}
+          <div>
+            <div className="identity">
+              <div className="flex items-start justify-between gap-4">
+                <div className="id-badges">
+                  {is_verified && <span className="badge-v">✓ Verified Business</span>}
+                  {listing_type !== 'standard' && <span className="badge-f">⭐ Featured</span>}
+                </div>
               </div>
-
-              <div className="p-6">
-                {/* About tab */}
-                {tab === 'about' && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="relative">
-                      <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-pink to-purple rounded-full opacity-20" />
-                      <p className="text-[15px] text-gray-600 leading-[1.8] font-medium tracking-tight">
-                        {description || short_description || 'No description available for this verified business.'}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {phone && (
-                        <a href={`tel:${phone}`} className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-pink/30 hover:shadow-md transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-pink group-hover:scale-110 transition-transform">
-                              <Phone size={18} strokeWidth={1.5} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Call Us</p>
-                              <p className="text-sm font-bold text-ink">{phone}</p>
-                            </div>
-                          </div>
-                        </a>
-                      )}
-                      {email && (
-                        <a href={`mailto:${email}`} className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-purple/30 hover:shadow-md transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-purple group-hover:scale-110 transition-transform">
-                              <Mail size={18} strokeWidth={1.5} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Email Us</p>
-                              <p className="text-sm font-bold text-ink truncate max-w-[150px]">{email}</p>
-                            </div>
-                          </div>
-                        </a>
-                      )}
-                      {(todayHours || business_hours) && (
-                        <div className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-emerald-500/30 hover:shadow-md transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                              <Clock size={18} strokeWidth={1.5} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Today's Hours</p>
-                              <p className="text-sm font-bold text-ink font-mono tracking-tight">
-                                {todayHours ? `${todayHours.open} – ${todayHours.close}` : 'Closed Today'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {address && (
-                        <div className="group p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-amber-500/30 hover:shadow-md transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                              <MapPin size={18} strokeWidth={1.5} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Location</p>
-                              <p className="text-sm font-bold text-ink line-clamp-1">{address}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Services tab */}
-
-                
-                {tab === 'services' && (
-                  <div>
-                    {services.length === 0 && tags.length === 0 ? (
-                      <p className="text-sm text-gray-400">No services listed.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {services.length > 0 ? (
-                          services.map((s) => (
-                            <div key={s.id}
-                              className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-purple/20 hover:bg-purple/2 transition-all">
-                              <div>
-                                <p className="font-semibold text-sm text-ink">{s.name}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {s.description || 'Professional service'} 
-                                  {s.price && <span className="text-pink ml-1">({s.price})</span>}
-                                </p>
-                              </div>
-                              <button onClick={() => setShowBooking(true)}
-                                className="text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all"
-                                style={{ background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' }}>
-                                Book
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          tags.map((tag, i) => (
-                            <div key={i}
-                              className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-purple/20 hover:bg-purple/2 transition-all">
-                              <div>
-                                <p className="font-semibold text-sm text-ink">{tag}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">Professional service</p>
-                              </div>
-                              <button onClick={() => setShowBooking(true)}
-                                className="text-xs font-bold px-3 py-1.5 rounded-xl text-white transition-all"
-                                style={{ background: 'linear-gradient(135deg,#E8317A,#5B2D8E)' }}>
-                                Book
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-
-
-
-
-                {/* Reviews tab */}
-                {tab === 'reviews' && (
-                  <div>
-                    {reviews.length === 0 ? (
-                      <div className="text-center py-6">
-                        <div className="text-3xl mb-2">⭐</div>
-                        <p className="font-bold text-ink text-sm mb-1">No reviews yet</p>
-                        <p className="text-xs text-gray-400">Be the first to leave a review</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 mb-6">
-                        {reviews.map(r => (
-                          <div key={r.id} className="border border-gray-100 rounded-2xl p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-bold text-sm text-ink">{r.reviewer_name || 'Anonymous'}</p>
-                                <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</p>
-                              </div>
-                              <div className="text-amber-400 text-sm">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
-                            </div>
-                            {r.comment && <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Write review */}
-                    <div className="border-t border-gray-100 pt-5">
-                      <h4 className="font-bold text-ink text-sm mb-4">Write a Review</h4>
-                      <form onSubmit={e => {
-                        e.preventDefault()
-                        if (!reviewForm.rating) return toast.error('Please select a rating')
-                        submitReview.mutate({ ...reviewForm, business_id: business.id })
-                      }} className="space-y-3">
-                        <div>
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Rating *</label>
-                          <StarPicker value={reviewForm.rating} onChange={v => setReviewForm(f => ({ ...f, rating: v }))} />
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Your Name *</label>
-                          <input value={reviewForm.reviewer_name} onChange={e => setReviewForm(f => ({ ...f, reviewer_name: e.target.value }))}
-                            placeholder="Enter your name"
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple transition-colors" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Review</label>
-                          <textarea value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
-                            placeholder="Share your experience…" rows={3}
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple transition-colors resize-none" />
-                        </div>
-                        <button type="submit" disabled={submitReview.isPending}
-                          className="brand-btn flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">
-                          <Send size={13} /> {submitReview.isPending ? 'Submitting…' : 'Submit Review'}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                )}
-
-                {/* Location tab */}
-                {tab === 'location' && (
-                  <div>
-                    {address && (
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-xl bg-pink-light flex items-center justify-center flex-shrink-0 mt-0.5"><MapPin size={14} className="text-pink" /></div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">Address</p>
-                          <p className="text-sm text-ink font-medium">{address}</p>
-                        </div>
-                      </div>
-                    )}
-                    {/* Map placeholder -> Google Maps Link */}
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((business?.name_en || '') + ' ' + (address || '') + ' Oman')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full h-52 rounded-2xl bg-gray-100 flex flex-col items-center justify-center border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer group"
-                    >
-                      <div className="text-center">
-                        <div className="text-3xl mb-2 transition-transform group-hover:scale-110">🗺️</div>
-                        <p className="text-sm text-gray-500 font-bold group-hover:text-ink transition-colors">Open in Google Maps</p>
-                        <p className="text-xs text-gray-400 mt-1 font-medium">Get directions to {business?.name_en}</p>
-                      </div>
-                    </a>
-                  </div>
+              <h1 className="id-name">{name_en}</h1>
+              <div className="id-meta">
+                <span>
+                  <span className="id-stars">{'★'.repeat(Math.round(avgRating))}</span> 
+                  <strong>{avgRating}</strong> ({totalReviews} reviews)
+                </span>
+                <span className="sep">·</span>
+                <span>📍 {address || (governorate ? governorate.name_en : 'Oman')}</span>
+                {category && (
+                  <>
+                    <span className="sep">·</span>
+                    <span>🏷️ {category.name_en}</span>
+                  </>
                 )}
               </div>
             </div>
 
-            {/* Premium Bento Gallery */}
-            {gallery_urls.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="font-display text-xl text-ink font-normal">Gallery</h3>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{gallery_urls.length} Photos</span>
-                </div>
-
-                <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[400px]">
-                  {/* Large featured photo */}
-                  <div onClick={() => setLbIndex(0)}
-                    className="col-span-2 row-span-2 relative group cursor-pointer overflow-hidden rounded-2xl border border-gray-100">
-                    <img src={gallery_urls[0]} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Smaller thumbnails */}
-                  {gallery_urls.slice(1, 4).map((url, i) => (
-                    <div key={i} onClick={() => setLbIndex(i + 1)}
-                      className={`relative group cursor-pointer overflow-hidden rounded-2xl border border-gray-100 ${i === 2 ? 'col-span-2' : 'col-span-2 sm:col-span-1'}`}>
-                      <img src={url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  ))}
-
-                  {/* View all overlay on last visible image if more exist */}
-                  {gallery_urls.length > 4 && (
-                    <div onClick={() => setLbIndex(4)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-bold text-sm cursor-pointer hover:bg-black/60 transition-colors rounded-2xl">
-                      +{gallery_urls.length - 4} More
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right sidebar */}
-          <div className="space-y-4">
-
-            {/* Quick Contact */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h3 className="font-bold text-ink text-sm mb-4">Quick Contact</h3>
-              <div className="space-y-2.5">
-                <button onClick={() => setShowBooking(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg,#1B5E3B,#2D7A55)' }}>
-                  <Calendar size={15} /> Book Appointment
+            <div className="ai-block">
+              <div className="ai-block-head">
+                <div className="ai-block-title"><span className="ai-spark">✦</span> AI Summary</div>
+                <button className="ai-gen-btn" onClick={handleAiGen} disabled={aiLoading}>
+                  {aiLoading ? 'Generating...' : 'Generate'}
                 </button>
-                {whatsapp && (
-                  <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border-[1.5px] border-gray-200 text-ink hover:border-gray-300 transition-all">
-                    💬 Send Message
-                  </a>
-                )}
-                {phone && (
-                  <a href={`tel:${phone}`}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-gray-100 text-gray-600 hover:border-gray-200 transition-all">
-                    📞 Call Now
-                  </a>
-                )}
+              </div>
+              <div className="ai-text">
+                {aiLoading ? (
+                  <div className="ai-dots">
+                    <span className="ai-dot"></span><span className="ai-dot"></span><span className="ai-dot"></span>
+                  </div>
+                ) : aiText}
               </div>
             </div>
 
-            {/* Business Hours */}
-            {Object.keys(business_hours).length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-bold text-ink text-sm mb-4 flex items-center gap-2"><Clock size={14} className="text-purple" />Business Hours</h3>
-                <div className="space-y-2">
+            <div className="bento">
+              <div className="bt">
+                <div className="bt-label">Rating</div>
+                <div className="rating-tile">
+                  <div className="rt-num">{avgRating}</div>
+                  <div className="rt-right">
+                    <RatingStars rating={avgRating} />
+                    <div className="rt-cnt">{totalReviews} reviews</div>
+                  </div>
+                </div>
+              </div>
+              <div className="bt bt-stat">
+                <span className="bt-ico">👀</span>
+                <div className="bt-label">Profile Views</div>
+                <div className="bt-val">{view_count || 1}</div>
+              </div>
+              <div className="bt bt-stat">
+                <span className="bt-ico">✨</span>
+                <div className="bt-label">Services Offered</div>
+                <div className="bt-val">{services.length || 'Various'}</div>
+              </div>
+              <div className="bt span2">
+                <span className="bt-ico">🕐</span>
+                <div className="bt-label">Business hours</div>
+                <div className="hours-mini">
                   {DAYS.map(day => {
                     const hours = business_hours[day.toLowerCase()]
                     const isClosed = !hours || hours.closed
                     const isToday = day === today
                     return (
-                      <div key={day} className={`flex justify-between text-xs ${isToday ? 'font-bold' : 'font-medium'}`}>
-                        <span className={isToday ? 'text-purple' : 'text-gray-500'}>{day.slice(0, 3)}</span>
-                        <span className={!isClosed ? (isToday ? 'text-purple' : 'text-ink') : 'text-gray-300'}>
+                      <div key={day} className="hm-row">
+                        <span className={`hm-day ${isToday ? 'hm-today' : ''}`}>
+                          {isToday && <span className="today-pip"></span>}
+                          {day}
+                        </span>
+                        <span className={`hm-time ${isToday && !isClosed ? 'hm-today' : ''}`} style={isClosed ? { color: 'var(--dim)' } : {}}>
                           {!isClosed ? `${hours.open} – ${hours.close}` : 'Closed'}
                         </span>
                       </div>
@@ -543,55 +278,160 @@ export default function BusinessProfilePage() {
                   })}
                 </div>
               </div>
-            )}
+              <div className="bt">
+                <span className="bt-ico">📍</span>
+                <div className="bt-label">Location</div>
+                <div className="bt-val">{governorate ? governorate.name_en : 'Muscat, Oman'}</div>
+                <div className="bt-sub">{address}</div>
+              </div>
+              <div className="bt">
+                <span className="bt-ico">📞</span>
+                <div className="bt-label">Contact</div>
+                <div className="bt-val">{phone || whatsapp || 'Contact from booking'}</div>
+                <div className="bt-sub">{email || 'N/A'}</div>
+                {website && <div className="bt-sub text-blue-600 mt-1"><a href={website} target="_blank" rel="noreferrer">Website</a></div>}
+              </div>
+              {has_deal && (
+                <div className="bt" style={{ borderColor: '#15803D', background: '#F0FDF4' }}>
+                  <span className="bt-ico">🎁</span>
+                  <div className="bt-label" style={{ color: '#166534' }}>Special Deal</div>
+                  <div className="bt-val" style={{ color: '#14532D', fontSize: '13px' }}>{deal_text || 'Ask about our current promotions!'}</div>
+                </div>
+              )}
+            </div>
 
-            {/* Rating snapshot */}
-            {(reviews.length > 0 || rating_count > 0) && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <h3 className="font-display text-xl text-ink font-normal mb-4">Rating</h3>
-                <div className="flex items-center gap-6 pb-6 border-b border-gray-50">
-                  <div className="text-center">
-                    <div className="font-display text-5xl brand-text font-normal mb-1">
-                      {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg).toFixed(1)}
+            <div className="desc-block">
+              <div className="section-title">About</div>
+              <p className="desc-text">{description || short_description || 'No description provided.'}</p>
+              {tags.length > 0 && (
+                <div className="desc-tags">
+                  {tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                </div>
+              )}
+            </div>
+
+            <div className="reviews-block" id="reviews">
+              <div className="section-title">Reviews ({totalReviews})</div>
+              {reviews.slice(0, 5).map(r => (
+                <div key={r.id} className="review-card">
+                  <div className="rv-av" style={{ background: '#475569' }}>
+                    {(r.reviewer_name || 'A')[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="rv-name">{r.reviewer_name || 'Anonymous'}</div>
+                    <div className="rv-meta">
+                      <span className="rv-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                      <span>·</span>
+                      <span>{new Date(r.created_at).toLocaleDateString()}</span>
                     </div>
-                    <RatingStars rating={reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) : (rating_avg || 0)} size={16} />
+                    {r.comment && <div className="rv-text">{r.comment}</div>}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Review Analysis</p>
-                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                      Based on <span className="text-ink font-bold">{reviews.length || rating_count}</span> verified customer reviews.
-                    </p>
-                  </div>
+                </div>
+              ))}
+
+              <div className="write-review">
+                <div className="wr-title">Write a review</div>
+                <form onSubmit={e => {
+                  e.preventDefault()
+                  if (!reviewForm.rating) return toast.error('Please select a rating')
+                  submitReview.mutate({ ...reviewForm, business_id: business.id })
+                }}>
+                  <StarPicker value={reviewForm.rating} onChange={v => setReviewForm(f => ({ ...f, rating: v }))} />
+                  <input type="text" className="wr-input" placeholder="Your name" required
+                    value={reviewForm.reviewer_name} onChange={e => setReviewForm(f => ({ ...f, reviewer_name: e.target.value }))} />
+                  <textarea className="wr-input" placeholder="Share your experience..." rows="3"
+                    value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}></textarea>
+                  <button type="submit" disabled={submitReview.isPending} className="wr-btn">
+                    {submitReview.isPending ? 'Submitting...' : 'Submit review'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div>
+              <div className="booking-card p-8 text-center bg-white shadow-2xl border border-gray-100 rounded-[32px] overflow-hidden relative">
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500"></div>
+                
+                <div className="w-16 h-16 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                   <Calendar size={32} />
                 </div>
                 
-                <RatingBreakdown reviews={reviews} />
-              </div>
-            )}
-
-            {/* Tags / services quick list */}
-            {tags.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-bold text-ink text-sm mb-3">Services</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map(t => (
-                    <span key={t} className="text-xs font-semibold bg-purple-light text-purple px-3 py-1 rounded-full">{t}</span>
-                  ))}
+                <h3 className="text-xl font-black text-ink mb-3">Instant Booking</h3>
+                <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                  Choose your preferred service, date, and time. Secure your spot in seconds.
+                </p>
+  
+                <Link to={`/business/${slug}/book`} className="w-full bg-ink text-white py-4 rounded-2xl font-bold shadow-xl hover:opacity-90 active:scale-95 transition-all text-sm block">
+                   Book Services Online
+                </Link>
+                
+                <div className="mt-8 pt-8 border-t border-gray-100">
+                   <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Or Reach Directly</p>
+                   <div className="flex flex-col gap-3">
+                     {whatsapp && (
+                       <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 py-3 bg-[#25D366] text-white rounded-xl text-xs font-bold hover:opacity-90">
+                          Chat on WhatsApp
+                       </a>
+                     )}
+                     {phone && (
+                       <a href={`tel:${phone}`} className="flex items-center justify-center gap-2 py-3 border border-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50">
+                          Call {phone}
+                       </a>
+                     )}
+                   </div>
+                   
+                   <div className="mt-8 pt-6 border-t border-gray-50">
+                      <img 
+                         src="https://img.freepik.com/premium-vector/vectors-women-various-situations_753212-1401.jpg?w=360" 
+                         alt="Booking Illustration" 
+                         className="w-full rounded-2xl opacity-80"
+                      />
+                   </div>
                 </div>
               </div>
-            )}
+
+            <div className="services-block mt-8">
+           
+              {services.length === 0 ? (
+                <p className="text-sm text-gray-500"></p>
+              ) : (
+                services.map(s => (
+                  <div key={s.id || s.name} className="svc-row">
+                    <div className="svc-left">
+                      <div className="svc-name text-sm">{s.name}</div>
+                      <div className="svc-desc text-xs">{s.description || 'Professional service'}</div>
+                    </div>
+                    <div className="svc-right">
+                      <span className="svc-price text-sm">{s.price || 'Ask for price'}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Lightbox */}
+        <Lightbox
+          images={displayGallery}
+          index={lbIndex}
+          onClose={() => setLbIndex(null)}
+          onPrev={() => setLbIndex(prev => (prev > 0 ? prev - 1 : displayGallery.length - 1))}
+          onNext={() => setLbIndex(next => (next < displayGallery.length - 1 ? next + 1 : 0))}
+        />
+
+        {/* Success Modal */}
+        <div className={`succ-bg ${isBooked ? 'open' : ''}`}>
+          <div className="succ-card">
+            <div className="succ-ico text-white">✓</div>
+            <div className="succ-title">Booking Request Sent</div>
+            <div className="succ-sub">The business will contact you shortly to confirm your appointment.</div>
+            <button className="succ-btn sb-home" onClick={() => setIsBooked(false)}>Close</button>
           </div>
         </div>
       </div>
-
-      {showBooking && <BookingModal business={business} onClose={() => setShowBooking(false)} />}
-
-      <Lightbox
-        images={gallery_urls}
-        index={lbIndex}
-        onClose={() => setLbIndex(null)}
-        onPrev={() => setLbIndex(prev => (prev > 0 ? prev - 1 : gallery_urls.length - 1))}
-        onNext={() => setLbIndex(next => (next < gallery_urls.length - 1 ? next + 1 : 0))}
-      />
-    </div>
+    </>
   )
 }

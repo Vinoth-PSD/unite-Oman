@@ -161,102 +161,115 @@ export default function Navbar() {
                 View all categories <ChevronRight size={12} />
               </Link>
             </div>
-          </div>
-
-          {/* Middle Pane (Subcategories) */}
-          <div className="w-[340px] border-r border-gray-100 px-[32px] flex flex-col h-full relative shrink-0">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-4 h-[15px]">
-              {hoveredCat ? `Explore ${hoveredCat.name_en}` : ' '}
-            </h3>
-            
-            {subsLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
-            ) : subCategories.length > 0 ? (
-              <div className="flex flex-col gap-1 overflow-y-auto pb-4 custom-scrollbar -ml-2 -mr-2 px-2">
-                {subCategories.map(sub => {
-                  const isSubActive = hoveredSubCat?.id === sub.id
-                  return (
-                    <div 
-                      key={sub.id} 
-                      onMouseEnter={() => setHoveredSubCat(sub)}
-                      onClick={() => !sub.has_children && navigate(`/businesses?category=${sub.slug}`)}
-                      className={`group flex items-center justify-between p-2.5 rounded-xl transition-colors cursor-pointer ${
-                        isSubActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
-                      }`}
-                    >
-                      <div>
-                        <h4 className={`text-[13px] font-bold transition-colors mb-0.5 ${isSubActive ? 'text-[var(--brand)]' : 'text-gray-800'}`}>{sub.name_en}</h4>
-                        <p className="text-[11px] text-gray-400">{sub.has_children ? 'Has categories' : `${sub.business_count || 0} businesses`}</p>
+          </div>          {/* Middle & Right Panes */}
+          {subsLoading ? (
+            <div className="flex-1 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+          ) : subCategories.length > 0 ? (
+            <>
+              {/* Middle Pane (Subcategories) */}
+              <div className="w-[340px] border-r border-gray-100 px-[32px] flex flex-col h-full relative shrink-0">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-4 h-[15px]">
+                  {hoveredCat ? `Explore ${hoveredCat.name_en}` : ' '}
+                </h3>
+                
+                <div className="flex flex-col gap-1 overflow-y-auto pb-4 custom-scrollbar -ml-2 -mr-2 px-2">
+                  {subCategories.map(sub => {
+                    const isSubActive = hoveredSubCat?.id === sub.id
+                    return (
+                      <div 
+                        key={sub.id} 
+                        onMouseEnter={() => setHoveredSubCat(sub)}
+                        onClick={() => !sub.has_children && navigate(`/businesses?category=${sub.slug}`)}
+                        className={`group flex items-center justify-between p-2.5 rounded-xl transition-colors cursor-pointer ${
+                          isSubActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
+                        }`}
+                      >
+                        <div>
+                          <h4 className={`text-[13px] font-bold transition-colors mb-0.5 ${isSubActive ? 'text-[var(--brand)]' : 'text-gray-800'}`}>{sub.name_en}</h4>
+                          <p className="text-[11px] text-gray-400">{sub.has_children ? 'Has categories' : `${sub.business_count || 0} businesses`}</p>
+                        </div>
+                        {sub.has_children && <ChevronRight size={14} className={isSubActive ? 'text-[var(--brand)]' : 'text-gray-300'} />}
                       </div>
-                      {sub.has_children && <ChevronRight size={14} className={isSubActive ? 'text-[var(--brand)]' : 'text-gray-300'} />}
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Right Pane (Child Categories) */}
+              <div className="flex-1 px-[40px] flex flex-col h-full relative">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-4 h-[15px]">
+                  {hoveredSubCat ? `Explore ${hoveredSubCat.name_en}` : ' '}
+                </h3>
+
+                {!hoveredSubCat ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <Sparkles size={24} className="text-gray-400" />
                     </div>
-                  )
-                })}
+                    <p className="text-[13px] font-bold text-gray-500">Hover a category to see more</p>
+                  </div>
+                ) : childLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+                ) : childCategories.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6 overflow-y-auto pb-4 custom-scrollbar content-start">
+                    {childCategories.map(child => (
+                      <Link 
+                        key={child.id} 
+                        to={`/businesses?category=${child.slug}`}
+                        onClick={() => setCatOpen(false)}
+                        className="group flex flex-col p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <h4 className="text-[13px] font-bold text-gray-900 group-hover:text-[var(--brand)] transition-colors mb-0.5">{child.name_en}</h4>
+                        <p className="text-[11px] text-gray-400">{child.business_count || 0} businesses</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <Utensils size={24} className="text-[var(--brand)]" opacity={0.5} />
+                    </div>
+                    <h4 className="text-[14px] font-bold text-gray-900 mb-1">Explore {hoveredSubCat.name_en}</h4>
+                    <p className="text-[12px] text-gray-400 max-w-[200px] mb-4">{hoveredSubCat.business_count || 0} businesses available</p>
+                    <Link 
+                      to={`/businesses?category=${hoveredSubCat.slug}`}
+                      onClick={() => setCatOpen(false)}
+                      className="px-6 py-2 bg-[var(--brand)] text-white rounded-full text-[13px] font-bold hover:opacity-90 transition-opacity"
+                    >
+                      View all
+                    </Link>
+                  </div>
+                )}
               </div>
-            ) : hoveredCat ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <Package size={24} className="text-gray-300" />
-                </div>
-                <h4 className="text-[14px] font-bold text-gray-900 mb-1">No subcategories</h4>
-                <p className="text-[12px] text-gray-400 max-w-[200px]">Browsing businesses directly in {hoveredCat.name_en} soon.</p>
-                <Link 
-                  to={`/businesses?category=${hoveredCat.slug}`}
-                  onClick={() => setCatOpen(false)}
-                  className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-[12px] font-bold hover:bg-black transition-colors"
-                >
-                  View Businesses
-                </Link>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Right Pane (Child Categories) */}
-          <div className="flex-1 px-[40px] flex flex-col h-full relative">
-             <h3 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-4 h-[15px]">
-              {hoveredSubCat ? `Explore ${hoveredSubCat.name_en}` : ' '}
-            </h3>
-
-            {!hoveredSubCat ? (
-              <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <Sparkles size={24} className="text-gray-400" />
-                </div>
-                <p className="text-[13px] font-bold text-gray-500">Hover a category to see more</p>
-              </div>
-            ) : childLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
-            ) : childCategories.length > 0 ? (
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6 overflow-y-auto pb-4 custom-scrollbar content-start">
-                {childCategories.map(child => (
+            </>
+          ) : hoveredCat ? (
+            <div className="flex-1 px-[40px] py-[20px] flex flex-col h-full relative">
+              <div className="w-full h-[320px] rounded-3xl overflow-hidden relative flex flex-col items-center justify-center bg-gray-50 border border-gray-100 shadow-sm ml-4 mt-2">
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg)] to-white opacity-60"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-pink-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3"></div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center p-8">
+                  <div className="w-20 h-20 bg-white shadow-xl shadow-black/5 rounded-[24px] flex items-center justify-center mb-6 rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <Sparkles size={32} className="text-[var(--brand)]" />
+                  </div>
+                  <h2 className="text-[28px] font-black text-gray-900 mb-3 tracking-tight">
+                    Explore {hoveredCat.name_en}
+                  </h2>
+                  <p className="text-[15px] font-medium text-gray-500 max-w-[340px] mb-8 leading-relaxed">
+                    Discover top-rated businesses, exclusive deals, and premium services in Oman.
+                  </p>
                   <Link 
-                    key={child.id} 
-                    to={`/businesses?category=${child.slug}`}
+                    to={`/businesses?category=${hoveredCat.slug}`}
                     onClick={() => setCatOpen(false)}
-                    className="group flex flex-col p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                    className="px-8 py-3.5 bg-[var(--ink)] text-white rounded-full text-[14px] font-bold hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/20 transition-all flex items-center gap-2"
                   >
-                    <h4 className="text-[13px] font-bold text-gray-900 group-hover:text-[var(--brand)] transition-colors mb-0.5">{child.name_en}</h4>
-                    <p className="text-[11px] text-gray-400">{child.business_count || 0} businesses</p>
+                    View all businesses <ChevronRight size={16} />
                   </Link>
-                ))}
-              </div>
-            ) : (
-               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <Utensils size={24} className="text-[var(--brand)]" opacity={0.5} />
                 </div>
-                <h4 className="text-[14px] font-bold text-gray-900 mb-1">Explore {hoveredSubCat.name_en}</h4>
-                <p className="text-[12px] text-gray-400 max-w-[200px] mb-4">{hoveredSubCat.business_count || 0} businesses available</p>
-                <Link 
-                  to={`/businesses?category=${hoveredSubCat.slug}`}
-                  onClick={() => setCatOpen(false)}
-                  className="px-6 py-2 bg-[var(--brand)] text-white rounded-full text-[13px] font-bold hover:opacity-90 transition-opacity"
-                >
-                  View all
-                </Link>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

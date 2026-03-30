@@ -15,7 +15,7 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-async def send_booking_confirmation(email: EmailStr, name: str, business_name: str, date: str, time: str, service: str = None):
+async def send_booking_confirmation(email: EmailStr, name: str, business_name: str, date: str, time: str, service: str | None = None):
     subject = f"Appointment Confirmed: {business_name}"
     
     html = f"""
@@ -44,7 +44,7 @@ async def send_booking_confirmation(email: EmailStr, name: str, business_name: s
     fm = FastMail(conf)
     await fm.send_message(message)
 
-async def send_booking_rejection(email: EmailStr, name: str, business_name: str, date: str, time: str, service: str = None):
+async def send_booking_rejection(email: EmailStr, name: str, business_name: str, date: str, time: str, service: str | None = None):
     subject = f"Update regarding your booking at {business_name}"
     
     html = f"""

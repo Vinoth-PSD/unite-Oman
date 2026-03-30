@@ -72,6 +72,7 @@ function BusinessTable({ defaultStatus = '' }) {
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState(defaultStatus)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
+  const [lightboxUrl, setLightboxUrl] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-businesses', page, statusFilter],
@@ -178,14 +179,15 @@ function BusinessTable({ defaultStatus = '' }) {
       {/* Business Details Modal */}
       {selectedBusiness && (
         <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
               <h3 className="font-bold text-ink">Business Details</h3>
               <button onClick={() => setSelectedBusiness(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-8 space-y-6">
+            <div className="p-8 space-y-6 overflow-y-auto flex-1">
+              {/* Business header */}
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <div className="w-14 h-14 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
                    {selectedBusiness.category?.icon || '🏢'}
@@ -199,7 +201,7 @@ function BusinessTable({ defaultStatus = '' }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-100/50">
                   <p className="text-[10px] font-bold text-purple uppercase tracking-widest mb-1">Plan Type</p>
-                  <p className="font-bold text-ink capitalize">{selectedBusiness.plan}</p>
+                  <p className="font-bold text-ink capitalize">{selectedBusiness.plan || 'basic'}</p>
                 </div>
                 <div className={`p-4 rounded-2xl border ${selectedBusiness.status === 'active' ? 'bg-green-50/30 border-green-100/50' : 'bg-amber-50/30 border-amber-100/50'}`}>
                   <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${selectedBusiness.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>Current Status</p>
@@ -217,11 +219,10 @@ function BusinessTable({ defaultStatus = '' }) {
                     <p className="text-sm font-bold text-ink">{selectedBusiness.owner_email || 'Not available'}</p>
                   </div>
                 </div>
-
                 {selectedBusiness.phone && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                      <LayoutDashboard size={14} />
+                      <Phone size={14} />
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</p>
@@ -229,6 +230,54 @@ function BusinessTable({ defaultStatus = '' }) {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* ── Vendor Documents ─────────────────────────── */}
+              <div className="pt-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldAlert size={16} className="text-amber-500" />
+                  <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Verification Documents</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'ID Proof', url: selectedBusiness.id_proof_url, required: true },
+                    { label: 'Owner Photo', url: selectedBusiness.owner_photo_url, required: true },
+                    { label: 'Trade License', url: selectedBusiness.trade_license_url, required: false },
+                  ].map(({ label, url, required }) => (
+                    <div key={label} className="flex flex-col gap-2">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        {label} {required && <span className="text-red-400">*</span>}
+                      </p>
+                      {url ? (
+                        url.match(/\.(pdf)$/i) ? (
+                          <a href={url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url}
+                             target="_blank" rel="noreferrer"
+                             className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors">
+                            <Download size={14} /> View PDF
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => setLightboxUrl(url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url)}
+                            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 hover:border-pink transition-colors cursor-pointer">
+                            <img src={url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url}
+                                 className="w-full h-full object-cover"
+                                 alt={label}
+                                 onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
+                            />
+                            <div style={{display:'none'}} className="absolute inset-0 bg-gray-100 items-center justify-center text-gray-400 text-xs font-bold">Error</div>
+                            <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/30 transition-all flex items-center justify-center">
+                              <Eye size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </button>
+                        )
+                      ) : (
+                        <div className="aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
+                          <span className="text-[9px] text-gray-400 font-bold uppercase">{required ? 'Not submitted' : 'Optional'}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-4 flex flex-wrap gap-3">
@@ -268,6 +317,25 @@ function BusinessTable({ defaultStatus = '' }) {
           </div>
         </div>
       )}
+
+      {/* ── Image Lightbox ─────────────────────────── */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[2000] bg-ink/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200"
+             onClick={() => setLightboxUrl(null)}>
+          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setLightboxUrl(null)}
+                    className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
+              <X size={20} />
+            </button>
+            <img src={lightboxUrl} className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl" alt="Document Preview" />
+            <a href={lightboxUrl} download target="_blank" rel="noreferrer"
+               className="mt-4 flex items-center justify-center gap-2 text-white/60 hover:text-white text-sm font-bold transition-colors">
+              <Download size={16} /> Download Document
+            </a>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

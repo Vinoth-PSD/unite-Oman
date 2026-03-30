@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, func
 from models.models import Business, Category, Governorate
 
-async def update_business_counts(db: AsyncSession, category_id: int = None, governorate_id: int = None):
+async def update_business_counts(db: AsyncSession, category_id: int | None = None, governorate_id: int | None = None):
     """Recalculate counts for specific category/governorate"""
     if category_id:
         count_q = select(func.count(Business.id)).where(

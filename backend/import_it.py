@@ -19,7 +19,7 @@ async def import_data():
     # I'll filter for entries that have 'Software company' or 'IT' in tags if possible, 
     # but the user said this file IS it company data.
     
-    it_businesses = []
+    it_businesses: list[dict] = []
     for item in data:
         cats = [c.lower() for c in item.get('categories', [])]
         if any(keyword in ' '.join(cats) for keyword in ['software', 'it', 'marketing agency', 'designer', 'consultant']):
@@ -27,7 +27,7 @@ async def import_data():
 
     # Sort by reviews to get the best ones
     it_businesses.sort(key=lambda x: x.get('reviewsCount', 0) or 0, reverse=True)
-    top_it = it_businesses[:30] # Import top 30
+    top_it = it_businesses[:30]  # type: ignore
 
     async with engine.begin() as conn:
         for item in top_it:

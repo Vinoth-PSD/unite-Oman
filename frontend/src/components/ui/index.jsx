@@ -32,6 +32,17 @@ const GOVERNORATE_ICONS = {
   'al-wusta': Palmtree,
 }
 
+const DUMMY_PICS = [
+  'https://images.unsplash.com/photo-1544161515-4ab2ce62edba?w=800&q=80&auto=format&fit=crop', // Massage/Spa
+  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80&auto=format&fit=crop', // Salon/Skincare
+  'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80&auto=format&fit=crop', // Business building
+  'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80&auto=format&fit=crop', // Beauty/Clinic
+  'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=800&q=80&auto=format&fit=crop', // Yoga/Wellness
+  'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80&auto=format&fit=crop', // Makeup/Esthetics
+  'https://images.unsplash.com/photo-1583416750470-965b2707b355?w=800&q=80&auto=format&fit=crop', // Essential Oils/Spa
+  'https://images.unsplash.com/photo-1552697611-cf7fa6ba906f?w=800&q=80&auto=format&fit=crop'  // Healthcare/Clinic
+]
+
 // ── BusinessCard ──────────────────────────────────────────────
 export function BusinessCard({ business }) {
   const { name_en, slug, category, governorate,
@@ -43,17 +54,26 @@ export function BusinessCard({ business }) {
   const starsFull = Math.round(rating_avg || 0)
 
   const bgImg = cover_image_url || logo_url;
-  const imgSrc = bgImg ? (bgImg.startsWith('/') ? import.meta.env.VITE_API_URL + bgImg : bgImg) : null;
+  let imgSrc = bgImg ? (bgImg.startsWith('/') ? import.meta.env.VITE_API_URL + bgImg : bgImg) : null;
+  
+  if (!imgSrc) {
+    const hash = name_en.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    imgSrc = DUMMY_PICS[hash % DUMMY_PICS.length]
+  }
 
   return (
     <Link to={`/business/${slug}`} className="block">
       <div className="card hover:cursor-pointer">
-        <div className="card-img">
-          {imgSrc ? (
-            <img src={imgSrc} alt={name_en} />
-          ) : (
-            <div className="card-placeholder">🏢</div>
-          )}
+        <div className="card-img bg-gray-100">
+          <img 
+            src={imgSrc} 
+            alt={name_en} 
+            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+            onError={(e) => {
+              e.target.src = DUMMY_PICS[0]
+              e.target.onerror = null
+            }}
+          />
           {is_verified && <div className="cv">✓ Verified</div>}
           {listing_type === 'sponsored' && <div className="cp">Sponsored</div>}
           {listing_type === 'featured' && <div className="cf">Featured</div>}

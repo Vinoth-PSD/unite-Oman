@@ -54,7 +54,8 @@ async def vendor_register(data: VendorRegister, db: AsyncSession = Depends(get_d
         # Ensure unique slug
         existing_slug = await db.execute(select(Business).where(Business.slug == slug))
         if existing_slug.scalar_one_or_none():
-            slug = f"{slug}-{uuid.uuid4().hex[:8]}"
+            unique_id = str(uuid.uuid4())[:8]
+            slug = f"{slug}-{unique_id}"
             
         business = Business(
             name_en=data.business_name,
@@ -64,6 +65,9 @@ async def vendor_register(data: VendorRegister, db: AsyncSession = Depends(get_d
             address=data.address,
             phone=data.phone,
             owner_id=user.id,
+            trade_license_url=data.trade_license_url,
+            id_proof_url=data.id_proof_url,
+            owner_photo_url=data.owner_photo_url,
             status=BusinessStatus.pending
         )
         db.add(business)

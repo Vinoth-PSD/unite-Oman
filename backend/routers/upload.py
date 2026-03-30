@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File
 import uuid
 import os
 import shutil
 from core.config import settings
-from core.auth import get_current_user
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
@@ -14,7 +13,6 @@ os.makedirs(UPLOAD_PATH, exist_ok=True)
 @router.post("")
 async def upload_file(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)
 ):
     try:
         # Generate unique filename

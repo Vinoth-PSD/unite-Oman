@@ -123,32 +123,85 @@ export function WhySection() {
 }
 
 export function Testimonials() {
-  const list = [
-    { name: 'Fatma Al Hashmi', loc: 'Muscat', text: '“Found a great AC technician within minutes. The WhatsApp integration is so convenient for quick quotes!”' },
-    { name: 'Ahmed Al Balushi', loc: 'Sohar', text: '“The deep cleaning service I booked was professional and very thorough. Highly recommend using UniteOman.”' },
-    { name: 'Sara Bin Salim', loc: 'Salalah', text: '“Excellent directory for finding reliable workers in Salalah. Saved me a lot of time and effort.”' }
+  const row1 = [
+    { name: 'Fatma Al Hashmi', loc: 'Muscat', text: '“Found a great AC technician within minutes. The WhatsApp integration is so convenient!”' },
+    { name: 'Ahmed Al Balushi', loc: 'Sohar', text: '“The deep cleaning service I booked was professional and very thorough. Highly recommend!”' },
+    { name: 'Sara Bin Salim', loc: 'Salalah', text: '“Excellent directory for finding reliable workers. Saved me a lot of time.”' },
+    { name: 'Mohammed Ali', loc: 'Nizwa', text: '“Super fast and easy to navigate. I found a mechanic in my area instantly.”' },
+    { name: 'Aisha Al Kiyumi', loc: 'Seeb', text: '“Love the user interface and how simple it is to filter out exactly what I need!”' },
   ]
 
+  const row2 = [
+    { name: 'Khaled Al Busaidi', loc: 'Sur', text: '“A game-changer for finding home services. Everything is verified and trustworthy.”' },
+    { name: 'Muna Al Hosni', loc: 'Rustaq', text: '“I needed an emergency plumber and found someone within 10 minutes. Fantastic app!”' },
+    { name: 'Tariq Al Zadjali', loc: 'Muscat', text: '“The best place to discover local Omani businesses. Great job on the design.”' },
+    { name: 'Zainab Al Abri', loc: 'Ibra', text: '“Booking a spa appointment was incredibly easy. Will use this platform again!”' },
+    { name: 'Said Al Ghafri', loc: 'Ibri', text: '“Very helpful for finding IT support for my small business. Five stars!”' },
+  ]
+
+  const renderCard = (t, idx) => (
+    <div key={idx} className="w-[320px] md:w-[400px] shrink-0 p-[28px] border border-[var(--line)] rounded-[var(--r)] bg-white text-left shadow-sm hover:border-[var(--brand)] transition-colors duration-300 mx-[10px]">
+      <div className="text-[#F59E0B] text-[14px] tracking-[2px] mb-[12px]">★★★★★</div>
+      <p className="text-[14px] text-[var(--mid)] font-medium leading-[1.7] italic mb-[20px]">
+        {t.text}
+      </p>
+      <div className="flex items-center gap-[12px]">
+        <div className="w-[36px] h-[36px] rounded-full bg-[var(--grad)] flex items-center justify-center text-[13px] font-bold text-white shadow-sm">
+          {t.name[0]}
+        </div>
+        <div>
+          <div className="text-[13px] font-bold text-[var(--ink)]">{t.name}</div>
+          <div className="text-[10px] text-[var(--dim)] font-black uppercase tracking-widest">{t.loc}</div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <section className="testi py-[100px] rv">
-      <div className="c text-center">
-        <h2 className="font-['Bricolage_Grotesque',sans-serif] text-[36px] font-bold text-[var(--ink)] mb-[56px]">What Omani homeowners say</h2>
-        <div className="testi-grid grid grid-cols-1 md:grid-cols-3 gap-[24px]">
-          {list.map((t, i) => (
-            <div key={i} className={`tcard p-[32px] border border-[var(--line)] rounded-[var(--r)] bg-white text-left shadow-sm tr hover-lift rv d${i * 2 + 1}`}>
-              <div className="tcard-stars text-[#F59E0B] text-[14px] tracking-[2px] mb-[16px]">★★★★★</div>
-              <p className="tcard-text text-[15px] text-[var(--mid)] font-medium leading-[1.8] italic mb-[24px]">{t.text}</p>
-              <div className="tcard-auth flex items-center gap-[12px]">
-                <div className="tcard-av w-[40px] h-[40px] rounded-full bg-[var(--grad)] flex items-center justify-center text-[14px] font-bold text-white shadow-sm">
-                  {t.name[0]}
-                </div>
-                <div>
-                  <div className="tcard-name text-[14px] font-bold text-[var(--ink)]">{t.name}</div>
-                  <div className="tcard-loc text-[11px] text-[var(--dim)] font-black uppercase tracking-widest">{t.loc}</div>
-                </div>
-              </div>
-            </div>
-          ))}
+    <section className="testi py-[100px] bg-[#FDFDFD] overflow-hidden">
+      <style>{`
+        @keyframes marquee-left {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes marquee-right {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+        .animate-scroll-left { animation: marquee-left 40s linear infinite; }
+        .animate-scroll-right { animation: marquee-right 40s linear infinite; }
+        .marquee-container:hover .animate-scroll-left,
+        .marquee-container:hover .animate-scroll-right {
+          animation-play-state: paused;
+        }
+      `}</style>
+      
+      <div className="text-center mb-[64px] px-4 flex flex-col items-center">
+        <div className="inline-flex items-center justify-center gap-[8px] bg-pink/10 text-pink text-[12px] font-bold px-[16px] py-[8px] rounded-full tracking-widest uppercase mb-[20px]">
+          <Star size={14} fill="currentColor" /> Highly Rated
+        </div>
+        <h2 className="font-['Bricolage_Grotesque',sans-serif] text-[clamp(36px,5vw,56px)] font-black text-[var(--ink)] tracking-[-0.04em] leading-[1.1]">
+          Over <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E8317A] to-[#8E2DE2]">1,000+</span>
+          <br /> trusted customers
+        </h2>
+        <p className="text-[16px] text-[var(--mid)] font-medium mt-[16px] max-w-[450px]">
+          See why thousands of homeowners and businesses across Oman love using our platform every day.
+        </p>
+      </div>
+
+      <div className="marquee-container flex flex-col gap-[20px] relative w-full left-0">
+        {/* Gradients for smooth fade-in / fade-out on the edges */}
+        <div className="absolute inset-y-0 left-0 w-[100px] lg:w-[200px] bg-gradient-to-r from-[#FDFDFD] to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute inset-y-0 right-0 w-[100px] lg:w-[200px] bg-gradient-to-l from-[#FDFDFD] to-transparent z-10 pointer-events-none"></div>
+
+        {/* Row 1 (Moving Left) */}
+        <div className="flex w-max animate-scroll-left">
+          {[...row1, ...row1].map((t, i) => renderCard(t, `r1-${i}`))}
+        </div>
+
+        {/* Row 2 (Moving Right) */}
+        <div className="flex w-max animate-scroll-right">
+          {[...row2, ...row2].map((t, i) => renderCard(t, `r2-${i}`))}
         </div>
       </div>
     </section>

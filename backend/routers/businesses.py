@@ -39,11 +39,15 @@ async def list_businesses(
     listing_type: Optional[str] = None,
     featured: Optional[bool] = None,
     verified: Optional[bool] = None,
+    has_deal: Optional[bool] = None,
     sort: str = Query("featured", enum=["featured", "rating", "newest", "name"]),
     page: int = Query(1, ge=1),
     per_page: int = Query(12, ge=1, le=48),
 ):
     query = select(Business).where(Business.status == BusinessStatus.active)
+
+    if has_deal is not None:
+        query = query.where(Business.has_deal == has_deal)
 
     if q:
         query = query.where(
@@ -54,6 +58,8 @@ async def list_businesses(
                 Business.short_description.ilike(f"%{q}%"),
             )
         )
+    p_id = None
+    c_ids = []
     if category:
         # Include subcategories
         cat_res = await db.execute(select(Category.id).where(Category.slug == category))
@@ -64,6 +70,7 @@ async def list_businesses(
             query = query.where(Business.category_id.in_(c_ids))
         else:
             query = query.join(Category).where(Category.slug == category)
+
     if governorate:
         query = query.join(Governorate).where(Governorate.slug == governorate)
     if plan:
@@ -75,8 +82,36 @@ async def list_businesses(
     if verified is not None:
         query = query.where(Business.is_verified == verified)
 
-    # Fast count without eager loading relations or sorting
-    count_q = select(func.count(Business.id)).select_from(query.subquery())
+    # Count using distinct Business IDs to avoid duplicates from joins
+    count_q = select(func.count(Business.id.distinct())).where(Business.status == BusinessStatus.active)
+
+    if has_deal is not None:
+        count_q = count_q.where(Business.has_deal == has_deal)
+    if q:
+        count_q = count_q.where(
+            or_(
+                Business.name_en.ilike(f"%{q}%"),
+                Business.name_ar.ilike(f"%{q}%"),
+                Business.description.ilike(f"%{q}%"),
+                Business.short_description.ilike(f"%{q}%"),
+            )
+        )
+    if category:
+        if p_id:
+            count_q = count_q.where(Business.category_id.in_(c_ids))
+        else:
+            count_q = count_q.join(Category, Business.category_id == Category.id).where(Category.slug == category)
+    if governorate:
+        count_q = count_q.join(Governorate, Business.governorate_id == Governorate.id).where(Governorate.slug == governorate)
+    if plan:
+        count_q = count_q.where(Business.plan == plan)
+    if listing_type:
+        count_q = count_q.where(Business.listing_type == listing_type)
+    if featured is not None:
+        count_q = count_q.where(Business.is_featured == featured)
+    if verified is not None:
+        count_q = count_q.where(Business.is_verified == verified)
+
     total = (await db.execute(count_q)).scalar()
 
     # Now add sorts

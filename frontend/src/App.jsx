@@ -10,6 +10,7 @@ import Footer from '@/components/layout/Footer'
 import HomePage from '@/pages/HomePage'
 import BusinessListPage from '@/pages/BusinessListPage'
 import BusinessProfilePage from '@/pages/BusinessProfilePage'
+import BookingPage from '@/pages/BookingPage'
 import CategoriesPage from '@/pages/CategoriesPage'
 import GovernoratesPage from '@/pages/GovernoratesPage'
 import AdminPage from '@/pages/AdminPage'
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
             <Route path="/businesses" element={<PublicLayout><BusinessListPage /></PublicLayout>} />
             <Route path="/business/:slug" element={<PublicLayout><BusinessProfilePage /></PublicLayout>} />
+            <Route path="/business/:slug/book" element={<PublicLayout><BookingPage /></PublicLayout>} />
             <Route path="/categories" element={<PublicLayout><CategoriesPage /></PublicLayout>} />
             <Route path="/governorates" element={<PublicLayout><GovernoratesPage /></PublicLayout>} />
             <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />

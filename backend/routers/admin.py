@@ -167,12 +167,6 @@ async def delete_category(
     db: AsyncSession = Depends(get_db), 
     _: dict = Depends(require_admin)
 ):
-    # Check if category has businesses
-    check_q = select(func.count(Business.id)).where(Business.category_id == category_id)
-    count = (await db.execute(check_q)).scalar()
-    if count > 0:
-        raise HTTPException(status_code=400, detail="Cannot delete category with associated businesses")
-
     result = await db.execute(select(Category).where(Category.id == category_id))
     cat = result.scalar_one_or_none()
     if not cat:

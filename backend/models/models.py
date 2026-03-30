@@ -65,7 +65,7 @@ class Category(Base):
     # Subcategory support
     parent_id       = Column(Integer, ForeignKey("categories.id"), nullable=True)
     
-    businesses      = relationship("Business", back_populates="category")
+    businesses      = relationship("Business", back_populates="category", cascade="all, delete-orphan", passive_deletes=True)
 
 class Business(Base):
     __tablename__ = "businesses"
@@ -75,7 +75,7 @@ class Business(Base):
     slug              = Column(String(500), unique=True, nullable=False)
     description       = Column(Text)
     short_description = Column(String(500))
-    category_id       = Column(Integer, ForeignKey("categories.id"), index=True)
+    category_id       = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), index=True)
     governorate_id    = Column(Integer, ForeignKey("governorates.id"), index=True)
     tags              = Column(ARRAY(Text), default=[])
     phone             = Column(String(100))
@@ -98,7 +98,15 @@ class Business(Base):
     rating_avg        = Column(DECIMAL(3, 2), default=0)
     rating_count      = Column(Integer, default=0)
     owner_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Documentation for verification
+    trade_license_url = Column(Text) # Optional
+    id_proof_url      = Column(Text) # Mandatory
+    owner_photo_url   = Column(Text) # Mandatory
+    
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
+    has_deal          = Column(Boolean, default=False, index=True)
+    deal_text         = Column(String(200))
     updated_at        = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     category          = relationship("Category", back_populates="businesses")
     governorate       = relationship("Governorate", back_populates="businesses")

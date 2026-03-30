@@ -164,7 +164,7 @@ async def seed():
                     })
                     await session.commit()
                     success_in_cat += 1
-                    total_count += 1
+                    total_count += 1  # type: ignore
                 except Exception as e:
                     print(f"     [!] Failed to import '{biz.get('title')}': {e}")
                     await session.rollback()

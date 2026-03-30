@@ -24,11 +24,37 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.origins,
+    allow_origin_regex="https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def manual_cors_middleware(request, call_next):
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+        if origin and ("localhost" in origin or "127.0.0.1" in origin):
+            from fastapi import Response
+            return Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
+    
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+    if origin and ("localhost" in origin or "127.0.0.1" in origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 app.include_router(businesses.router)
 app.include_router(catalog.router)

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
-    ALLOWED_ORIGINS: str = "http://72.61.229.172:5176"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://72.61.229.172:5176"
     ENVIRONMENT: str = "development"
     UPLOAD_DIR: str = "uploads"
     BASE_URL: str = "http://72.61.229.172:8090"

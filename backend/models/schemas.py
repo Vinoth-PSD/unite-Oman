@@ -73,8 +73,8 @@ class BusinessCard(BaseModel):
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
     status: BusinessStatus = BusinessStatus.pending
-    plan: PlanType = PlanType.basic
-    listing_type: ListingType = ListingType.standard
+    plan: Optional[PlanType] = PlanType.basic
+    listing_type: Optional[ListingType] = ListingType.standard
     is_verified: Optional[bool] = False
     is_featured: Optional[bool] = False
     rating_avg: Optional[float] = 0
@@ -82,8 +82,13 @@ class BusinessCard(BaseModel):
     view_count: Optional[int] = 0
     gallery_urls: Optional[List[str]] = []
     tags: Optional[List[str]] = []
+    has_deal: Optional[bool] = False
+    deal_text: Optional[str] = None
     owner_email: Optional[str] = None
     owner: Optional[UserOut] = None
+    id_proof_url: Optional[str] = None
+    owner_photo_url: Optional[str] = None
+    trade_license_url: Optional[str] = None
     created_at: datetime
     class Config: from_attributes = True
 
@@ -115,6 +120,8 @@ class BusinessCreate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     business_hours: Optional[Dict[str, Any]] = {}
+    has_deal: Optional[bool] = False
+    deal_text: Optional[str] = None
 
 class BusinessUpdate(BaseModel):
     name_en: Optional[str] = None
@@ -135,6 +142,8 @@ class BusinessUpdate(BaseModel):
     cover_image_url: Optional[str] = None
     gallery_urls: Optional[List[str]] = None
     business_hours: Optional[Dict[str, Any]] = None
+    has_deal: Optional[bool] = None
+    deal_text: Optional[str] = None
 
 class AdminBusinessUpdate(BusinessUpdate):
     status: Optional[BusinessStatus] = None
@@ -230,6 +239,11 @@ class VendorRegister(BaseModel):
     location_id: int # Match frontend
     address: Optional[str] = None
     phone: Optional[str] = None
+    
+    # Verification Documents
+    id_proof_url: str      = Field(..., min_length=5) # Mandatory
+    owner_photo_url: str   = Field(..., min_length=5) # Mandatory
+    trade_license_url: Optional[str] = None # Optional
 
 
 class TokenOut(BaseModel):

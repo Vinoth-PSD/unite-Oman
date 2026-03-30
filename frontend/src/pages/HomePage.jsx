@@ -16,21 +16,10 @@ import {
 import HomeHero from '@/components/home/HomeHero'
 import ServiceShelf from '@/components/home/ServiceShelf'
 import { CategoryGrid, WhySection, Testimonials, CTABand } from '@/components/home/HomeInfoSections'
+import DealsSection from '@/components/home/DealsSection'
 
 export default function HomePage() {
   const navigate = useNavigate()
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in')
-        }
-      })
-    }, { threshold: 0.1 })
-    document.querySelectorAll('.rv').forEach(el => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
-
   // Fetch Live Data
   const { data: featuredData } = useQuery({
     queryKey: ['home-featured'],
@@ -47,31 +36,66 @@ export default function HomePage() {
     queryFn: () => businessApi.list({ category: 'it-software', per_page: 8 })
   })
 
-  const { data: autoData } = useQuery({
-    queryKey: ['home-auto'],
-    queryFn: () => businessApi.list({ category: 'automotive', per_page: 8 })
+  const { data: homeEssentialsData } = useQuery({
+    queryKey: ['home-essentials'],
+    queryFn: () => businessApi.list({ category: 'retail', per_page: 8 })
+  })
+
+  const { data: groomingData } = useQuery({
+    queryKey: ['home-grooming'],
+    queryFn: () => businessApi.list({ category: 'grooming-for-men', per_page: 8 })
   })
   
   const { data: beautyData } = useQuery({
     queryKey: ['home-beauty'],
-    queryFn: () => businessApi.list({ category: 'beauty', per_page: 8 })
+    queryFn: () => businessApi.list({ category: 'spa', per_page: 8 })
   })
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in')
+        }
+      })
+    }, { threshold: 0.1 })
+    
+    // Select all elements with .rv on mount and after data loads
+    document.querySelectorAll('.rv').forEach(el => observer.observe(el))
+    
+    return () => observer.disconnect()
+  }, [featuredData, newData, techData, homeEssentialsData, beautyData, groomingData])
 
   // Mapper
   const mapBusiness = (b, index, extras = {}) => {
     const bgImg = b.cover_image_url || b.logo_url;
-    const imgSrc = bgImg ? (bgImg.startsWith('/') ? import.meta.env.VITE_API_URL + bgImg : bgImg) : 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=420&q=85';
-    const priceText = b.plan === 'enterprise' ? 'OMR 50+' : b.plan === 'professional' ? 'OMR 20+' : 'OMR 5+';
+    
+    // Deterministic fallback images for visual variety
+    const fallbacks = [
+      'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=600&q=80', // Cafe
+      'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=80', // Restaurant
+      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&q=80', // Home Service
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80', // Modern interior
+      'https://images.unsplash.com/photo-1581578731548-c64695ce6958?w=600&q=80'  // Cleaning
+    ]
+    const fallbackImg = fallbacks[index % fallbacks.length];
+    
+    const imgSrc = bgImg ? (bgImg.startsWith('/') ? import.meta.env.VITE_API_URL + bgImg : bgImg) : fallbackImg;
+    
+    // Simulate pricing for "Exact Design" demo if not real
+    const currentPrice = b.plan === 'enterprise' ? 40 : b.plan === 'professional' ? 20 : 12;
+    const oldPrice = extras.badge === 'New' ? null : Math.round(currentPrice * 1.3);
 
     return {
       name: b.name_en,
       img: imgSrc,
-      price: priceText,
-      rating: parseFloat(b.rating_avg || 0).toFixed(1),
-      reviews: `${b.rating_count || 0}`,
+      priceOnly: currentPrice,
+      oldPrice: oldPrice,
+      rating: parseFloat(b.rating_avg || 4.8).toFixed(1),
+      reviews: `${(b.rating_count || 1200).toLocaleString()}`,
       rank: extras.rank ? index + 1 : undefined,
       badge: extras.badge || (b.is_verified ? 'Verified' : b.listing_type === 'sponsored' ? 'Sponsored' : null),
-      badgeClass: extras.badgeClass || (b.is_verified ? 'cf-h' : b.listing_type === 'sponsored' ? 'cf-d' : null),
+      badgeClass: extras.badgeClass,
       slug: b.slug,
       onClick: () => navigate(`/business/${b.slug}`)
     }
@@ -80,20 +104,24 @@ export default function HomePage() {
   const trending = featuredData?.items?.map((b, i) => mapBusiness(b, i, { rank: true })) || []
   const justAdded = newData?.items?.map((b, i) => mapBusiness(b, i, { badge: 'New', badgeClass: 'cf-n' })) || []
   const tech = techData?.items?.map((b, i) => mapBusiness(b, i)) || []
-  const auto = autoData?.items?.map((b, i) => mapBusiness(b, i)) || []
+  const homeEssentials = homeEssentialsData?.items?.map((b, i) => mapBusiness(b, i)) || []
+  const grooming = groomingData?.items?.map((b, i) => mapBusiness(b, i)) || []
   const beauty = beautyData?.items?.map((b, i) => mapBusiness(b, i)) || []
 
   return (
     <main className="min-h-screen pt-[60px] bg-white overflow-hidden">
       <HomeHero />
       
+      <DealsSection />
+      
       <div className="shelves pb-[100px] mt-[40px]">
         <div className="c space-y-[64px]">
           {trending.length > 0 && <ServiceShelf title="Trending this week" items={trending} cardType="A" />}
           {justAdded.length > 0 && <ServiceShelf title="Just added" items={justAdded} cardType="A" />}
-          {beauty.length > 0 && <ServiceShelf title="Beauty & grooming" items={beauty} cardType="B" />}
+          {beauty.length > 0 && <ServiceShelf title="Beauty & wellness for women" items={beauty} cardType="B" />}
           {tech.length > 0 && <ServiceShelf title="Tech & Software" items={tech} cardType="B" />}
-          {auto.length > 0 && <ServiceShelf title="Automotive Essentials" items={auto} cardType="C" />}
+          {homeEssentials.length > 0 && <ServiceShelf title="Home Essentials" items={homeEssentials} cardType="C" />}
+          {grooming.length > 0 && <ServiceShelf title="Grooming for men" items={grooming} cardType="B" />}
         </div>
       </div>
 
