@@ -114,8 +114,8 @@ export default function HomePage() {
       
       <DealsSection />
       
-      <div className="shelves pb-[100px] mt-[40px]">
-        <div className="c space-y-[64px]">
+      <div className="shelves pb-[48px] ">
+        <div className="c ">
           {trending.length > 0 && <ServiceShelf title="Trending this week" items={trending} cardType="A" />}
           {justAdded.length > 0 && <ServiceShelf title="Just added" items={justAdded} cardType="A" />}
           {beauty.length > 0 && <ServiceShelf title="Beauty & wellness for women" items={beauty} cardType="B" />}

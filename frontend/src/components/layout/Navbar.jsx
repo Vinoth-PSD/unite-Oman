@@ -70,7 +70,7 @@ export default function Navbar() {
       <nav ref={navRef} className={`h-[64px] flex items-center transition-all duration-500 fixed top-0 left-0 right-0 z-[100] border-b ${
         scrolled || catOpen ? 'bg-white/95 backdrop-blur-md shadow-sm border-[var(--line)]' : 'bg-white border-transparent'
       }`}>
-        <div className="flex items-center justify-between w-full max-w-[var(--max)] mx-auto px-[48px] h-full">
+        <div className="flex items-center justify-between w-full max-w-[var(--max)] mx-auto max-md:px-[18px] px-[48px] h-full">
           <Link to="/" className="shrink-0 tr hover:opacity-80">
             <Logo theme="light" style={{ height: '32px' }} />
           </Link>

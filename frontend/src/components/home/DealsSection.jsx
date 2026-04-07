@@ -42,27 +42,43 @@ export default function DealsSection() {
   const items = dealsData.items.map(mapBusiness)
 
   return (
-    <section className="py-12 bg-white">
-      <div className="c">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-[28px] font-bold text-[#0A0A0A] font-['Bricolage_Grotesque'] tracking-tight">
+    <section className="py-12 max-md:py-8 bg-white overflow-x-hidden">
+      <div className="c px-6 max-md:px-4 max-lg:px-8 max-w-[1250px] mx-auto">
+        {/* Header Section */}
+        <div className="flex items-center justify-between mb-6 md:mb-8 flex-wrap gap-3">
+          <h2 className="text-[24px] md:text-[28px] font-bold text-[#0A0A0A] font-['Bricolage_Grotesque'] tracking-tight">
             Today's deals
           </h2>
           <button 
             onClick={() => navigate('/search?has_deal=true')}
-            className="flex items-center gap-1 text-[13px] font-bold text-[#FF4B55] hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1 text-[12px] md:text-[13px] font-bold text-[#FF4B55] hover:opacity-80 transition-opacity whitespace-nowrap"
           >
             See all →
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 pb-4">
+        {/* Grid Layout - Fully Responsive */}
+        <div className="grid grid-cols-2 max-sm:grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 pb-4">
           {items.slice(0, 5).map((item, i) => (
             <ServiceCard key={i} type="A" item={item} />
           ))}
         </div>
+
+        {/* Optional: Show message if only 1-2 items for better UX on mobile */}
+        {items.length < 3 && items.length > 0 && (
+          <div className="text-center mt-6 md:mt-8">
+            <button 
+              onClick={() => navigate('/search?has_deal=true')}
+              className="inline-flex items-center gap-2 text-[14px] font-medium text-[#FF4B55] border border-[#FF4B55] px-6 py-2 rounded-full hover:bg-[#FF4B55] hover:text-white transition-all"
+            >
+              View all deals
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   )
 }
-

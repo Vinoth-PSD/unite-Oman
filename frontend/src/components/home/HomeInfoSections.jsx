@@ -53,10 +53,10 @@ export function CategoryGrid() {
   })
 
   return (
-    <section className="cats py-[88px]">
+    <section className="cats py-[48px]">
       <div className="c">
         <h2 className="font-['Bricolage_Grotesque'] text-[32px] font-bold text-center mb-[12px]">Browse by Category</h2>
-        <div className="cats-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-[16px] mt-[48px]">
+        <div className="cats-grid grid grid-cols-2 max-sm:grid-cols-1 md:grid-cols-4 gap-[16px] mt-[48px]">
           {categories.map((cat, i) => {
             const Icon = CATEGORY_ICONS[cat.slug] || Briefcase
             const linkTo = cat.has_children
@@ -92,7 +92,7 @@ export function WhySection() {
   ]
 
   return (
-    <section className="why py-[100px] bg-[#F9F9F8] rv">
+    <section className="why py-[48px] bg-[#F9F9F8] rv">
       <div className="c grid md:grid-cols-2 gap-[40px] md:gap-[100px] items-center">
         <div>
           <div className="why-label text-[11px] font-bold tracking-[0.2em] uppercase text-[var(--brand)] mb-[16px]">Why choose UniteOman</div>
@@ -158,7 +158,7 @@ export function Testimonials() {
   )
 
   return (
-    <section className="testi py-[100px] bg-[#FDFDFD] overflow-hidden">
+    <section className="testi py-[48px] bg-[#FDFDFD] overflow-hidden">
       <style>{`
         @keyframes marquee-left {
           0% { transform: translateX(0); }
@@ -210,7 +210,7 @@ export function Testimonials() {
 
 export function CTABand() {
   return (
-    <section className="cta bg-[var(--ink)] py-[100px] text-center border-t border-[rgba(255,255,255,0.05)] overflow-hidden">
+    <section className="cta bg-[var(--ink)] py-[48px] text-center border-t border-[rgba(255,255,255,0.05)] overflow-hidden">
       <div className="c rv">
         <div className="cta-label text-[12px] font-bold tracking-[0.3em] uppercase text-[rgba(255,255,255,0.35)] mb-[24px]">Grow your business</div>
         <h2 className="cta-h font-['Bricolage_Grotesque',sans-serif] text-[clamp(36px,5vw,64px)] font-bold text-white leading-[1.0] tracking-[-0.05em] mb-[20px]">
