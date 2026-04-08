@@ -276,7 +276,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden absolute top-[64px] left-0 right-0 bg-white border-b border-gray-100 shadow-xl p-4 flex flex-col gap-2 z-[90]">
+        <div className="md:hidden fixed top-[64px] left-0 right-0 bg-white border-b border-gray-100 shadow-xl p-4 flex flex-col gap-2 z-[90]">
           {[['Categories','/categories'],['Directory','/governorates'],['Businesses','/businesses'],['Contact','/contact']].map(([label, to]) => (
             <Link key={to} to={to} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl">{label}</Link>
           ))}

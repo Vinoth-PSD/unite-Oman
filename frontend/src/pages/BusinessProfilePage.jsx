@@ -5,7 +5,7 @@ import { businessApi, reviewApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
-import { Calendar } from 'lucide-react'
+import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
@@ -14,14 +14,20 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 function StarPicker({ value, onChange }) {
   const [hover, setHover] = useState(0)
   return (
-    <div className="wr-stars">
+    <div className="flex gap-1">
       {[1,2,3,4,5].map(n => (
-        <span key={n}
-          onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+        <button
+          key={n}
+          type="button"
+          onMouseEnter={() => setHover(n)} 
+          onMouseLeave={() => setHover(0)}
           onClick={() => onChange(n)}
-          className={`wr-star ${n <= (hover || value) ? 'on' : ''}`}>
+          className={`text-2xl transition-colors ${
+            n <= (hover || value) ? 'text-yellow-400' : 'text-gray-300'
+          }`}
+        >
           ★
-        </span>
+        </button>
       ))}
     </div>
   )
@@ -29,9 +35,11 @@ function StarPicker({ value, onChange }) {
 
 function RatingStars({ rating }) {
   return (
-    <div className="rt-stars">
+    <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} className={`rt-star ${n <= Math.round(rating) ? 'on' : 'off'}`}>★</span>
+        <span key={n} className={`text-sm ${
+          n <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-300'
+        }`}>★</span>
       ))}
     </div>
   )
@@ -39,27 +47,43 @@ function RatingStars({ rating }) {
 
 function Lightbox({ images, index, onClose, onPrev, onNext }) {
   if (index === null) return null
+  
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <button onClick={onClose} className="absolute top-6 right-6 text-white/60 hover:text-white transition-colors bg-white/10 p-2 rounded-full">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4">
+      <button 
+        onClick={onClose} 
+        className="absolute top-4 right-4 md:top-6 md:right-6 text-white/60 hover:text-white transition-colors bg-white/10 p-2 rounded-full z-10"
+      >
+        <X size={24} />
       </button>
 
       {images.length > 1 && (
         <>
-          <button onClick={onPrev} className="absolute left-6 text-white/40 hover:text-white transition-colors">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15 18l-6-6 6-6" /></svg>
+          <button 
+            onClick={onPrev} 
+            className="absolute left-2 md:left-6 text-white/40 hover:text-white transition-colors z-10"
+          >
+            <ChevronLeft size={40} />
           </button>
-          <button onClick={onNext} className="absolute right-6 text-white/40 hover:text-white transition-colors">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18l6-6-6-6" /></svg>
+          <button 
+            onClick={onNext} 
+            className="absolute right-2 md:right-6 text-white/40 hover:text-white transition-colors z-10"
+          >
+            <ChevronRight size={40} />
           </button>
         </>
       )}
 
-      <img src={images[index]} alt="" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+      <img 
+        src={images[index]} 
+        alt="" 
+        className="max-w-full max-h-[85vh] object-contain rounded-lg"
+      />
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
-        <span className="text-white/60 text-sm font-medium">{index + 1} / {images.length}</span>
+      <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2">
+        <span className="text-white/60 text-sm font-medium">
+          {index + 1} / {images.length}
+        </span>
       </div>
     </div>
   )
@@ -72,7 +96,6 @@ export default function BusinessProfilePage() {
   const [lbIndex, setLbIndex] = useState(null)
   const [isStuck, setIsStuck] = useState(false)
   
-  // States
   const [isBooked, setIsBooked] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiText, setAiText] = useState('Click Generate for an AI-powered overview of this business.')
@@ -109,11 +132,20 @@ export default function BusinessProfilePage() {
   }, [])
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center"><Spinner className="w-10 h-10" /></div>
+    <div className="min-h-screen flex items-center justify-center">
+      <Spinner className="w-10 h-10" />
+    </div>
   )
+  
   if (error || !business) return (
-    <div className="min-h-screen flex items-center justify-center text-center">
-      <div><div className="text-5xl mb-4">🏢</div><h2 className="text-xl font-bold text-ink mb-2">Business not found</h2><Link to="/businesses" className="brand-text text-sm font-bold">← Back to listings</Link></div>
+    <div className="min-h-screen flex items-center justify-center text-center px-4">
+      <div>
+        <div className="text-5xl mb-4">🏢</div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Business not found</h2>
+        <Link to="/businesses" className="text-blue-600 text-sm font-bold">
+          ← Back to listings
+        </Link>
+      </div>
     </div>
   )
 
@@ -124,7 +156,7 @@ export default function BusinessProfilePage() {
 
   const { name_en, description, short_description, category, governorate,
     cover_image_url: rawCover, gallery_urls: rawGallery, phone, whatsapp, email, website,
-    address, is_verified, listing_type, plan, rating_avg, rating_count, view_count, has_deal, deal_text,
+    address, is_verified, listing_type, rating_avg, rating_count, view_count, has_deal, deal_text,
     business_hours: rawHours, tags: rawTags, services: rawServices, owner_id } = business
 
   const isOwner = user?.id === owner_id || isAdmin
@@ -149,7 +181,9 @@ export default function BusinessProfilePage() {
 
   const today = DAYS[new Date().getDay()]
   
-  const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : Number(rating_avg || 0).toFixed(1)
+  const avgRating = reviews.length > 0 
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
+    : Number(rating_avg || 0).toFixed(1)
   const totalReviews = reviews.length || rating_count || 0
 
   const handleAiGen = () => {
@@ -163,114 +197,176 @@ export default function BusinessProfilePage() {
 
   return (
     <>
-      <div className="wrap pt-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* BREADCRUMB */}
-        <div className={`bc ${isStuck ? 'stuck' : ''}`}>
-          <Link to="/">Home</Link>
-          <span className="bc-sep">/</span>
-          <Link to="/businesses">Services</Link>
-          <span className="bc-sep">/</span>
-          <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{name_en}</span>
+        <div className={`flex items-center gap-2 text-sm py-3 overflow-x-auto whitespace-nowrap ${
+          isStuck ? 'sticky top-0 bg-white/95 backdrop-blur-sm z-30 shadow-sm' : ''
+        }`}>
+          <Link to="/" className="text-gray-500 hover:text-gray-700">Home</Link>
+          <span className="text-gray-400">/</span>
+          <Link to="/businesses" className="text-gray-500 hover:text-gray-700">Services</Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-900 font-medium">{name_en}</span>
         </div>
 
         {/* PHOTO MOSAIC */}
-        <div className="mosaic relative group/mosaic">
+        <div className="relative grid grid-cols-2 md:grid-cols-3 gap-2 mb-6 md:mb-8">
           {isOwner && (
-             <Link to={`/vendor/edit-shop/${business.id}`} 
-               className="absolute top-4 right-4 z-[20] bg-white/90 backdrop-blur shadow-sm p-3 rounded-xl border border-line flex items-center gap-2 text-[13px] font-bold hover:bg-white transition-all">
-                ⚙️ Manage Images
-             </Link>
+            <Link 
+              to={`/vendor/edit-shop/${business.id}`} 
+              className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur shadow-sm p-2 md:p-3 rounded-lg md:rounded-xl border border-gray-200 flex items-center gap-2 text-xs md:text-sm font-bold hover:bg-white transition-all"
+            >
+              ⚙️ Manage Images
+            </Link>
           )}
-          <div className="mosaic-main cursor-pointer" onClick={() => setLbIndex(0)}>
-            <img src={displayGallery[0]} alt="Main" />
+          
+          <div 
+            className="col-span-2 row-span-2 md:col-span-2 md:row-span-2 cursor-pointer"
+            onClick={() => setLbIndex(0)}
+          >
+            <img 
+              src={displayGallery[0]} 
+              alt="Main" 
+              className="w-full h-48 md:h-96 object-cover rounded-lg"
+            />
           </div>
+          
           {displayGallery.slice(1, 3).map((img, i) => (
-             <div key={i} className="mosaic-sub cursor-pointer" onClick={() => setLbIndex(i+1)}>
-               <img src={img} alt="" />
-             </div>
+            <div 
+              key={i} 
+              className="cursor-pointer"
+              onClick={() => setLbIndex(i+1)}
+            >
+              <img 
+                src={img} 
+                alt="" 
+                className="w-full h-24 md:h-[188px] object-cover rounded-lg"
+              />
+            </div>
           ))}
-          <button className="mosaic-btn" onClick={() => setLbIndex(0)}>⊞ View all photos</button>
+          
+          <button 
+            className="absolute bottom-3 right-3 bg-white/90 backdrop-blur px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium shadow-md hover:bg-white transition-all"
+            onClick={() => setLbIndex(0)}
+          >
+            ⊞ View all photos
+          </button>
         </div>
 
-        <div className="columns">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* LEFT COLUMN */}
-          <div>
-            <div className="identity">
-              <div className="flex items-start justify-between gap-4">
-                <div className="id-badges">
-                  {is_verified && <span className="badge-v">✓ Verified Business</span>}
-                  {listing_type !== 'standard' && <span className="badge-f">⭐ Featured</span>}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Identity Section */}
+            <div>
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                <div className="flex flex-wrap gap-2">
+                  {is_verified && (
+                    <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      ✓ Verified Business
+                    </span>
+                  )}
+                  {listing_type !== 'standard' && (
+                    <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                      ⭐ Featured
+                    </span>
+                  )}
                 </div>
               </div>
-              <h1 className="id-name">{name_en}</h1>
-              <div className="id-meta">
-                <span>
-                  <span className="id-stars">{'★'.repeat(Math.round(avgRating))}</span> 
-                  <strong>{avgRating}</strong> ({totalReviews} reviews)
+              
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+                {name_en}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <span className="text-yellow-400">{'★'.repeat(Math.round(avgRating))}</span>
+                  <span className="text-gray-400">{'★'.repeat(5 - Math.round(avgRating))}</span>
+                  <strong className="ml-1">{avgRating}</strong> ({totalReviews} reviews)
                 </span>
-                <span className="sep">·</span>
+                <span className="hidden sm:inline text-gray-300">·</span>
                 <span>📍 {address || (governorate ? governorate.name_en : 'Oman')}</span>
                 {category && (
                   <>
-                    <span className="sep">·</span>
+                    <span className="hidden sm:inline text-gray-300">·</span>
                     <span>🏷️ {category.name_en}</span>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="ai-block">
-              <div className="ai-block-head">
-                <div className="ai-block-title"><span className="ai-spark">✦</span> AI Summary</div>
-                <button className="ai-gen-btn" onClick={handleAiGen} disabled={aiLoading}>
+            {/* AI Block */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl md:rounded-2xl p-4 md:p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-base md:text-lg font-semibold">
+                  <span className="text-purple-600">✦</span> AI Summary
+                </div>
+                <button 
+                  className="px-3 py-1.5 md:px-4 md:py-2 bg-white text-purple-600 text-xs md:text-sm font-medium rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50"
+                  onClick={handleAiGen} 
+                  disabled={aiLoading}
+                >
                   {aiLoading ? 'Generating...' : 'Generate'}
                 </button>
               </div>
-              <div className="ai-text">
+              <div className="text-sm md:text-base text-gray-700 min-h-[60px]">
                 {aiLoading ? (
-                  <div className="ai-dots">
-                    <span className="ai-dot"></span><span className="ai-dot"></span><span className="ai-dot"></span>
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-100"></span>
+                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200"></span>
                   </div>
                 ) : aiText}
               </div>
             </div>
 
-            <div className="bento">
-              <div className="bt">
-                <div className="bt-label">Rating</div>
-                <div className="rating-tile">
-                  <div className="rt-num">{avgRating}</div>
-                  <div className="rt-right">
+            {/* Bento Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              <div className="col-span-2 md:col-span-1 bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="text-xs text-gray-500 mb-2">Rating</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl md:text-4xl font-bold text-gray-900">{avgRating}</div>
+                  <div>
                     <RatingStars rating={avgRating} />
-                    <div className="rt-cnt">{totalReviews} reviews</div>
+                    <div className="text-xs text-gray-500 mt-1">{totalReviews} reviews</div>
                   </div>
                 </div>
               </div>
-              <div className="bt bt-stat">
-                <span className="bt-ico">👀</span>
-                <div className="bt-label">Profile Views</div>
-                <div className="bt-val">{view_count || 1}</div>
+              
+              <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>👀</span>
+                  <span className="text-xs text-gray-500">Profile Views</span>
+                </div>
+                <div className="text-xl md:text-2xl font-semibold text-gray-900">{view_count || 1}</div>
               </div>
-              <div className="bt bt-stat">
-                <span className="bt-ico">✨</span>
-                <div className="bt-label">Services Offered</div>
-                <div className="bt-val">{services.length || 'Various'}</div>
+              
+              <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>✨</span>
+                  <span className="text-xs text-gray-500">Services</span>
+                </div>
+                <div className="text-xl md:text-2xl font-semibold text-gray-900">
+                  {services.length || 'Various'}
+                </div>
               </div>
-              <div className="bt span2">
-                <span className="bt-ico">🕐</span>
-                <div className="bt-label">Business hours</div>
-                <div className="hours-mini">
+              
+              <div className="col-span-2 bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <span>🕐</span>
+                  <span className="text-xs text-gray-500">Business hours</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                   {DAYS.map(day => {
                     const hours = business_hours[day.toLowerCase()]
                     const isClosed = !hours || hours.closed
                     const isToday = day === today
                     return (
-                      <div key={day} className="hm-row">
-                        <span className={`hm-day ${isToday ? 'hm-today' : ''}`}>
-                          {isToday && <span className="today-pip"></span>}
-                          {day}
+                      <div key={day} className="flex justify-between text-sm">
+                        <span className={`${isToday ? 'font-semibold text-blue-600' : 'text-gray-700'}`}>
+                          {day.substring(0, 3)}
+                          {isToday && <span className="ml-1 inline-block w-1.5 h-1.5 bg-blue-600 rounded-full"></span>}
                         </span>
-                        <span className={`hm-time ${isToday && !isClosed ? 'hm-today' : ''}`} style={isClosed ? { color: 'var(--dim)' } : {}}>
+                        <span className={isClosed ? 'text-gray-400' : 'text-gray-900'}>
                           {!isClosed ? `${hours.open} – ${hours.close}` : 'Closed'}
                         </span>
                       </div>
@@ -278,70 +374,137 @@ export default function BusinessProfilePage() {
                   })}
                 </div>
               </div>
-              <div className="bt">
-                <span className="bt-ico">📍</span>
-                <div className="bt-label">Location</div>
-                <div className="bt-val">{governorate ? governorate.name_en : 'Muscat, Oman'}</div>
-                <div className="bt-sub">{address}</div>
+              
+              <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>📍</span>
+                  <span className="text-xs text-gray-500">Location</span>
+                </div>
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {governorate ? governorate.name_en : 'Muscat, Oman'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1 truncate">{address}</div>
               </div>
-              <div className="bt">
-                <span className="bt-ico">📞</span>
-                <div className="bt-label">Contact</div>
-                <div className="bt-val">{phone || whatsapp || 'Contact from booking'}</div>
-                <div className="bt-sub">{email || 'N/A'}</div>
-                {website && <div className="bt-sub text-blue-600 mt-1"><a href={website} target="_blank" rel="noreferrer">Website</a></div>}
+              
+              <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>📞</span>
+                  <span className="text-xs text-gray-500">Contact</span>
+                </div>
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {phone || whatsapp || 'Contact via booking'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1 truncate">{email || 'N/A'}</div>
+                {website && (
+                  <div className="mt-2">
+                    <a 
+                      href={website} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Visit Website →
+                    </a>
+                  </div>
+                )}
               </div>
+              
               {has_deal && (
-                <div className="bt" style={{ borderColor: '#15803D', background: '#F0FDF4' }}>
-                  <span className="bt-ico">🎁</span>
-                  <div className="bt-label" style={{ color: '#166534' }}>Special Deal</div>
-                  <div className="bt-val" style={{ color: '#14532D', fontSize: '13px' }}>{deal_text || 'Ask about our current promotions!'}</div>
+                <div className="col-span-2 bg-green-50 rounded-xl p-3 md:p-4 border border-green-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span>🎁</span>
+                    <span className="text-xs font-medium text-green-700">Special Deal</span>
+                  </div>
+                  <div className="text-sm text-green-800">
+                    {deal_text || 'Ask about our current promotions!'}
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="desc-block">
-              <div className="section-title">About</div>
-              <p className="desc-text">{description || short_description || 'No description provided.'}</p>
+            {/* Description */}
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3">About</h2>
+              <p className="text-sm md:text-base text-gray-700 leading-relaxed">
+                {description || short_description || 'No description provided.'}
+              </p>
               {tags.length > 0 && (
-                <div className="desc-tags">
-                  {tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {tags.map(t => (
+                    <span key={t} className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                      {t}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
 
-            <div className="reviews-block" id="reviews">
-              <div className="section-title">Reviews ({totalReviews})</div>
-              {reviews.slice(0, 5).map(r => (
-                <div key={r.id} className="review-card">
-                  <div className="rv-av" style={{ background: '#475569' }}>
-                    {(r.reviewer_name || 'A')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="rv-name">{r.reviewer_name || 'Anonymous'}</div>
-                    <div className="rv-meta">
-                      <span className="rv-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                      <span>·</span>
-                      <span>{new Date(r.created_at).toLocaleDateString()}</span>
+            {/* Reviews */}
+            <div id="reviews">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
+                Reviews ({totalReviews})
+              </h2>
+              
+              <div className="space-y-4 mb-6">
+                {reviews.slice(0, 5).map(r => (
+                  <div key={r.id} className="flex gap-3">
+                    <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0">
+                      {(r.reviewer_name || 'A')[0].toUpperCase()}
                     </div>
-                    {r.comment && <div className="rv-text">{r.comment}</div>}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900">
+                        {r.reviewer_name || 'Anonymous'}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                        <span className="text-yellow-400">
+                          {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                        </span>
+                        <span>·</span>
+                        <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                      </div>
+                      {r.comment && (
+                        <p className="text-sm text-gray-700">{r.comment}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
-              <div className="write-review">
-                <div className="wr-title">Write a review</div>
-                <form onSubmit={e => {
-                  e.preventDefault()
-                  if (!reviewForm.rating) return toast.error('Please select a rating')
-                  submitReview.mutate({ ...reviewForm, business_id: business.id })
-                }}>
-                  <StarPicker value={reviewForm.rating} onChange={v => setReviewForm(f => ({ ...f, rating: v }))} />
-                  <input type="text" className="wr-input" placeholder="Your name" required
-                    value={reviewForm.reviewer_name} onChange={e => setReviewForm(f => ({ ...f, reviewer_name: e.target.value }))} />
-                  <textarea className="wr-input" placeholder="Share your experience..." rows="3"
-                    value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}></textarea>
-                  <button type="submit" disabled={submitReview.isPending} className="wr-btn">
+              {/* Write Review Form */}
+              <div className="bg-gray-50 rounded-xl p-4 md:p-5">
+                <h3 className="font-semibold text-gray-900 mb-3">Write a review</h3>
+                <form 
+                  className="space-y-3"
+                  onSubmit={e => {
+                    e.preventDefault()
+                    if (!reviewForm.rating) return toast.error('Please select a rating')
+                    submitReview.mutate({ ...reviewForm, business_id: business.id })
+                  }}
+                >
+                  <StarPicker 
+                    value={reviewForm.rating} 
+                    onChange={v => setReviewForm(f => ({ ...f, rating: v }))} 
+                  />
+                  <input 
+                    type="text" 
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Your name" 
+                    required
+                    value={reviewForm.reviewer_name} 
+                    onChange={e => setReviewForm(f => ({ ...f, reviewer_name: e.target.value }))} 
+                  />
+                  <textarea 
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Share your experience..." 
+                    rows="3"
+                    value={reviewForm.comment} 
+                    onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                  ></textarea>
+                  <button 
+                    type="submit" 
+                    disabled={submitReview.isPending} 
+                    className="w-full md:w-auto px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                  >
                     {submitReview.isPending ? 'Submitting...' : 'Submit review'}
                   </button>
                 </form>
@@ -350,66 +513,85 @@ export default function BusinessProfilePage() {
           </div>
 
           {/* RIGHT COLUMN */}
-          <div>
-              <div className="booking-card p-8 text-center bg-white shadow-2xl border border-gray-100 rounded-[32px] overflow-hidden relative">
-                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500"></div>
-                
-                <div className="w-16 h-16 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                   <Calendar size={32} />
+          <div className="space-y-6">
+            {/* Booking Card */}
+            <div className="bg-white rounded-2xl md:rounded-3xl p-5 md:p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1.5 md:h-2 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500"></div>
+              
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-pink-100 text-pink-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
+                <Calendar size={24} className="md:w-8 md:h-8" />
+              </div>
+              
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3 text-center">
+                Instant Booking
+              </h3>
+              <p className="text-xs md:text-sm text-gray-500 mb-6 md:mb-8 text-center leading-relaxed">
+                Choose your preferred service, date, and time. Secure your spot in seconds.
+              </p>
+
+              <Link 
+                to={`/business/${slug}/book`} 
+                className="w-full bg-gray-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-lg hover:bg-gray-800 active:scale-95 transition-all text-xs md:text-sm block text-center"
+              >
+                Book Services Online
+              </Link>
+              
+              <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 md:mb-4 text-center">
+                  Or Reach Directly
+                </p>
+                <div className="flex flex-col gap-2 md:gap-3">
+                  {whatsapp && (
+                    <a 
+                      href={`https://wa.me/${whatsapp}`} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center justify-center gap-2 py-2.5 md:py-3 bg-[#25D366] text-white rounded-lg md:rounded-xl text-xs md:text-sm font-bold hover:opacity-90 transition-opacity"
+                    >
+                      Chat on WhatsApp
+                    </a>
+                  )}
+                  {phone && (
+                    <a 
+                      href={`tel:${phone}`} 
+                      className="flex items-center justify-center gap-2 py-2.5 md:py-3 border border-gray-200 text-gray-600 rounded-lg md:rounded-xl text-xs md:text-sm font-bold hover:bg-gray-50 transition-colors"
+                    >
+                      Call {phone}
+                    </a>
+                  )}
                 </div>
                 
-                <h3 className="text-xl font-black text-ink mb-3">Instant Booking</h3>
-                <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                  Choose your preferred service, date, and time. Secure your spot in seconds.
-                </p>
-  
-                <Link to={`/business/${slug}/book`} className="w-full bg-ink text-white py-4 rounded-2xl font-bold shadow-xl hover:opacity-90 active:scale-95 transition-all text-sm block">
-                   Book Services Online
-                </Link>
-                
-                <div className="mt-8 pt-8 border-t border-gray-100">
-                   <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Or Reach Directly</p>
-                   <div className="flex flex-col gap-3">
-                     {whatsapp && (
-                       <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 py-3 bg-[#25D366] text-white rounded-xl text-xs font-bold hover:opacity-90">
-                          Chat on WhatsApp
-                       </a>
-                     )}
-                     {phone && (
-                       <a href={`tel:${phone}`} className="flex items-center justify-center gap-2 py-3 border border-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-50">
-                          Call {phone}
-                       </a>
-                     )}
-                   </div>
-                   
-                   <div className="mt-8 pt-6 border-t border-gray-50">
-                      <img 
-                         src="https://img.freepik.com/premium-vector/vectors-women-various-situations_753212-1401.jpg?w=360" 
-                         alt="Booking Illustration" 
-                         className="w-full rounded-2xl opacity-80"
-                      />
-                   </div>
+                <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-50">
+                  <img 
+                    src="https://img.freepik.com/premium-vector/vectors-women-various-situations_753212-1401.jpg?w=360" 
+                    alt="Booking Illustration" 
+                    className="w-full rounded-xl md:rounded-2xl opacity-80"
+                  />
                 </div>
               </div>
-
-            <div className="services-block mt-8">
-           
-              {services.length === 0 ? (
-                <p className="text-sm text-gray-500"></p>
-              ) : (
-                services.map(s => (
-                  <div key={s.id || s.name} className="svc-row">
-                    <div className="svc-left">
-                      <div className="svc-name text-sm">{s.name}</div>
-                      <div className="svc-desc text-xs">{s.description || 'Professional service'}</div>
-                    </div>
-                    <div className="svc-right">
-                      <span className="svc-price text-sm">{s.price || 'Ask for price'}</span>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
+
+            {/* Services List */}
+            {services.length > 0 && (
+              <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100">
+                <h3 className="font-semibold text-gray-900 mb-3">Services Offered</h3>
+                <div className="space-y-3">
+                  {services.map(s => (
+                    <div key={s.id || s.name} className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">{s.name}</div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {s.description || 'Professional service'}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900 flex-shrink-0">
+                        {s.price || 'Ask'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -423,14 +605,25 @@ export default function BusinessProfilePage() {
         />
 
         {/* Success Modal */}
-        <div className={`succ-bg ${isBooked ? 'open' : ''}`}>
-          <div className="succ-card">
-            <div className="succ-ico text-white">✓</div>
-            <div className="succ-title">Booking Request Sent</div>
-            <div className="succ-sub">The business will contact you shortly to confirm your appointment.</div>
-            <button className="succ-btn sb-home" onClick={() => setIsBooked(false)}>Close</button>
+        {isBooked && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-white text-2xl">✓</span>
+              </div>
+              <h3 className="text-lg font-bold text-center mb-2">Booking Request Sent</h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                The business will contact you shortly to confirm your appointment.
+              </p>
+              <button 
+                className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                onClick={() => setIsBooked(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   )

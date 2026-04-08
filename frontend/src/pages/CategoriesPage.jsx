@@ -113,7 +113,7 @@ export default function CategoriesPage() {
           </div>
         ) : (
           /* Top-level — icon grid cards */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 max-sm:grid-cols-1 md:grid-cols-4 gap-5">
             {cats.map((cat, i) => {
               const Icon = ICONS[cat.slug] || Briefcase
               const grad = GRADIENTS[i % GRADIENTS.length]

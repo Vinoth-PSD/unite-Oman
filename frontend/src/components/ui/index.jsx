@@ -33,14 +33,14 @@ const GOVERNORATE_ICONS = {
 }
 
 const DUMMY_PICS = [
-  'https://images.unsplash.com/photo-1544161515-4ab2ce62edba?w=800&q=80&auto=format&fit=crop', // Massage/Spa
-  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80&auto=format&fit=crop', // Salon/Skincare
-  'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80&auto=format&fit=crop', // Business building
-  'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80&auto=format&fit=crop', // Beauty/Clinic
-  'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=800&q=80&auto=format&fit=crop', // Yoga/Wellness
-  'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80&auto=format&fit=crop', // Makeup/Esthetics
-  'https://images.unsplash.com/photo-1583416750470-965b2707b355?w=800&q=80&auto=format&fit=crop', // Essential Oils/Spa
-  'https://images.unsplash.com/photo-1552697611-cf7fa6ba906f?w=800&q=80&auto=format&fit=crop'  // Healthcare/Clinic
+  'https://images.unsplash.com/photo-1544161515-4ab2ce62edba?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1583416750470-965b2707b355?w=800&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1552697611-cf7fa6ba906f?w=800&q=80&auto=format&fit=crop'
 ]
 
 // ── BusinessCard ──────────────────────────────────────────────
@@ -114,21 +114,20 @@ export function CategoryIconCard({ category, index = 0 }) {
   const { id, name_en, slug, business_count, has_children } = category
   const Icon = CATEGORY_ICONS[slug] || Briefcase
 
-  // If this category has subcategories, link to the subcategory listing page
   const linkTo = has_children
     ? `/categories?parent_slug=${slug}&name=${encodeURIComponent(name_en)}`
     : `/businesses?category=${slug}`
 
   return (
     <Link to={linkTo}
-      className="group bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
+      className="group bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 lg:p-6 flex flex-col items-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
         style={{ background: CAT_COLORS[index % CAT_COLORS.length] }}>
-        <Icon size={28} strokeWidth={1.5} />
+        <Icon size={22} className="sm:w-[26px] sm:h-[26px] lg:w-[28px] lg:h-[28px]" strokeWidth={1.5} />
       </div>
-      <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
-      {has_children && <p className="text-[9px] uppercase tracking-widest font-bold text-pink mb-0.5">Explore →</p>}
-      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
+      <h3 className="font-bold text-ink text-xs sm:text-sm mb-0.5">{name_en}</h3>
+      {has_children && <p className="text-[8px] sm:text-[9px] uppercase tracking-widest font-bold text-pink mb-0.5">Explore →</p>}
+      <p className="text-[8px] sm:text-[10px] uppercase tracking-widest font-bold text-gray-400">
         {business_count || 0} {business_count === 1 ? 'Business' : 'Businesses'}
       </p>
     </Link>
@@ -146,7 +145,7 @@ export function CategoryCard({ category, large = false }) {
 
   return (
     <Link to={linkTo}
-      className={`group relative rounded-2xl overflow-hidden cursor-pointer block transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${large ? 'min-h-[240px]' : 'aspect-[4/3]'}`}>
+      className={`group relative rounded-2xl overflow-hidden cursor-pointer block transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${large ? 'min-h-[180px] sm:min-h-[220px] lg:min-h-[240px]' : 'aspect-[4/3]'}`}>
       <div className="absolute inset-0 bg-gray-800" 
         style={cover_image_url ? { 
           backgroundImage:`url(${cover_image_url.startsWith('/') ? import.meta.env.VITE_API_URL + cover_image_url : cover_image_url})`,
@@ -155,16 +154,16 @@ export function CategoryCard({ category, large = false }) {
         } : {}} />
       <div className="absolute inset-0" style={{ background:'linear-gradient(165deg,rgba(10,6,20,.1) 0%,rgba(10,6,20,.72) 100%)' }} />
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background:'rgba(232,49,122,.08)' }} />
-      <button className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xs group-hover:bg-pink group-hover:border-pink transition-all">↗</button>
-      <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-        <div className={`bg-white/15 backdrop-blur-md border border-white/20 rounded-lg flex items-center justify-center mb-2 text-white ${large ? 'w-11 h-11' : 'w-9 h-9'}`}>
-          <Icon size={large ? 20 : 16} strokeWidth={1.5} />
+      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xs group-hover:bg-pink group-hover:border-pink transition-all">↗</button>
+      <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-10">
+        <div className={`bg-white/15 backdrop-blur-md border border-white/20 rounded-lg flex items-center justify-center mb-2 text-white ${large ? 'w-8 h-8 sm:w-10 sm:h-10 lg:w-11 lg:h-11' : 'w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9'}`}>
+          <Icon size={large ? 16 : 14} className="sm:w-[18px] sm:h-[18px] lg:w-[20px] lg:h-[20px]" strokeWidth={1.5} />
         </div>
-        <h3 className={`font-bold text-white leading-tight mb-0.5 ${large ? 'text-xl' : 'text-sm'}`}>{name_en}</h3>
-        <p className="text-[10px] font-bold text-white/60 tracking-wider">
+        <h3 className={`font-bold text-white leading-tight mb-0.5 ${large ? 'text-base sm:text-lg lg:text-xl' : 'text-xs sm:text-sm'}`}>{name_en}</h3>
+        <p className="text-[8px] sm:text-[10px] font-bold text-white/60 tracking-wider">
           {has_children ? 'Browse Subcategories →' : `${business_count || 0} ${business_count === 1 ? 'Shop' : 'Shops'}`}
         </p>
-        {name_ar && <p className="text-xs text-white/45 mb-1">{name_ar}</p>}
+        {name_ar && <p className="text-[10px] sm:text-xs text-white/45 mb-1">{name_ar}</p>}
       </div>
     </Link>
   )
@@ -177,14 +176,14 @@ export function GovernorateIconCard({ governorate, index = 0 }) {
 
   return (
     <Link to={`/businesses?governorate=${slug}`}
-      className="group bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
+      className="group bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 lg:p-6 flex flex-col items-center justify-center text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-300 text-ink"
         style={{ background: CAT_COLORS[index % CAT_COLORS.length] }}>
-        <Icon size={28} strokeWidth={1.5} />
+        <Icon size={22} className="sm:w-[26px] sm:h-[26px] lg:w-[28px] lg:h-[28px]" strokeWidth={1.5} />
       </div>
-      <h3 className="font-bold text-ink text-sm mb-0.5">{name_en}</h3>
-      {name_ar && <p className="text-[10px] text-purple font-bold tracking-tight mb-1 uppercase opacity-60">{name_ar}</p>}
-      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
+      <h3 className="font-bold text-ink text-xs sm:text-sm mb-0.5">{name_en}</h3>
+      {name_ar && <p className="text-[9px] sm:text-[10px] text-purple font-bold tracking-tight mb-1 uppercase opacity-60">{name_ar}</p>}
+      <p className="text-[8px] sm:text-[10px] uppercase tracking-widest font-bold text-gray-400">
         {business_count || 0} {business_count === 1 ? 'Business' : 'Businesses'}
       </p>
     </Link>
@@ -193,16 +192,16 @@ export function GovernorateIconCard({ governorate, index = 0 }) {
 
 // ── Spinner ───────────────────────────────────────────────────
 export function Spinner({ className = '' }) {
-  return <div className={`inline-block w-6 h-6 rounded-full border-2 border-gray-200 border-t-pink animate-spin ${className}`} />
+  return <div className={`inline-block w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-gray-200 border-t-pink animate-spin ${className}`} />
 }
 
 // ── Empty State ───────────────────────────────────────────────
 export function EmptyState({ icon = '🔍', title, description, action }) {
   return (
-    <div className="text-center py-16 px-6">
-      <div className="text-5xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold text-ink mb-2">{title}</h3>
-      {description && <p className="text-gray-400 text-sm mb-6">{description}</p>}
+    <div className="text-center py-8 sm:py-12 lg:py-16 px-4 sm:px-6">
+      <div className="text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4">{icon}</div>
+      <h3 className="text-lg sm:text-xl font-bold text-ink mb-1 sm:mb-2">{title}</h3>
+      {description && <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">{description}</p>}
       {action}
     </div>
   )
@@ -212,16 +211,28 @@ export function EmptyState({ icon = '🔍', title, description, action }) {
 export function Pagination({ page, pages, onPage }) {
   if (pages <= 1) return null
   return (
-    <div className="pag">
-      <button className="pag-btn" disabled={page === 1} onClick={() => onPage(page - 1)}>
+    <div className="pag flex-wrap gap-1 sm:gap-2">
+      <button className="pag-btn text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" disabled={page === 1} onClick={() => onPage(page - 1)}>
         ← Prev
       </button>
-      {Array.from({ length: Math.min(pages, 7) }, (_, i) => i + 1).map(p => (
-        <button key={p} className={`pag-btn ${p === page ? 'on' : ''}`} onClick={() => onPage(p)}>
-          {p}
-        </button>
-      ))}
-      <button className="pag-btn" disabled={page === pages} onClick={() => onPage(page + 1)}>
+      {Array.from({ length: Math.min(pages, 5) }, (_, i) => {
+        let pageNum
+        if (pages <= 5) {
+          pageNum = i + 1
+        } else if (page <= 3) {
+          pageNum = i + 1
+        } else if (page >= pages - 2) {
+          pageNum = pages - 4 + i
+        } else {
+          pageNum = page - 2 + i
+        }
+        return (
+          <button key={pageNum} className={`pag-btn text-xs sm:text-sm ${pageNum === page ? 'on' : ''}`} onClick={() => onPage(pageNum)}>
+            {pageNum}
+          </button>
+        )
+      })}
+      <button className="pag-btn text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2" disabled={page === pages} onClick={() => onPage(page + 1)}>
         Next →
       </button>
     </div>
