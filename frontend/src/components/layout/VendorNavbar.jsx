@@ -84,7 +84,7 @@ export default function VendorNavbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-ink/98 border-t border-white/10 px-6 py-4 space-y-1">
+        <div className="md:hidden bg-black border-t border-white/10 px-6 py-4 space-y-1">
           {vendorLinks.map(({ label, to, icon: Icon, exact }) => (
             <Link key={to} to={to}
               onClick={() => setOpen(false)}

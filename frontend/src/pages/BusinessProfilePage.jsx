@@ -387,13 +387,13 @@ export default function BusinessProfilePage() {
               </div>
               
               <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-100">
-                <div className="flex items-center gap-2 mb-1">
+                {/* <div className="flex items-center gap-2 mb-1">
                   <span>📞</span>
                   <span className="text-xs text-gray-500">Contact</span>
                 </div>
                 <div className="text-sm font-medium text-gray-900 truncate">
                   {phone || whatsapp || 'Contact via booking'}
-                </div>
+                </div> */}
                 <div className="text-xs text-gray-500 mt-1 truncate">{email || 'N/A'}</div>
                 {website && (
                   <div className="mt-2">
@@ -537,7 +537,7 @@ export default function BusinessProfilePage() {
               </Link>
               
               <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 md:mb-4 text-center">
+                {/* <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 md:mb-4 text-center">
                   Or Reach Directly
                 </p>
                 <div className="flex flex-col gap-2 md:gap-3">
@@ -559,7 +559,7 @@ export default function BusinessProfilePage() {
                       Call {phone}
                     </a>
                   )}
-                </div>
+                </div> */}
                 
                 <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-50">
                   <img 

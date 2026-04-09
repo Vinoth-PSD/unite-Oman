@@ -14,8 +14,8 @@ function AdminLoginPage() {
   const { login } = useAuth()
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
-
   const navigate = useNavigate()
+
   const handleSubmit = async e => {
     e.preventDefault()
     setLoading(true)
@@ -25,8 +25,8 @@ function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-16">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-8 px-4">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-3">🔐</div>
           <h1 className="font-display text-2xl font-normal text-ink">Admin Login</h1>
@@ -37,13 +37,13 @@ function AdminLoginPage() {
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Email</label>
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               placeholder="admin@uniteoman.com"
-              className="w-full border-[1.5px] border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink transition-colors" required />
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 transition-all bg-white text-ink placeholder:text-gray-300" required />
           </div>
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Password</label>
             <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               placeholder="••••••••"
-              className="w-full border-[1.5px] border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink transition-colors" required />
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 transition-all bg-white text-ink placeholder:text-gray-300" required />
           </div>
           <button type="submit" disabled={loading} className="w-full brand-btn py-3 rounded-xl text-sm font-bold mt-2 disabled:opacity-60">
             {loading ? 'Logging in…' : 'Log In →'}
@@ -57,7 +57,7 @@ function AdminLoginPage() {
 // ── Stat Card ─────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, color }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition-all">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3 ${color}`}>{icon}</div>
       <div className="font-display text-3xl font-normal text-ink mb-0.5 brand-text">{value ?? '–'}</div>
       <div className="text-sm font-bold text-ink">{label}</div>
@@ -66,7 +66,22 @@ function StatCard({ icon, label, value, sub, color }) {
   )
 }
 
-// ── Business Table ────────────────────────────────────────────
+// ── Status Badge ──────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const map = {
+    active: 'bg-green-50 text-green-700 border border-green-200',
+    pending: 'bg-amber-50 text-amber-700 border border-amber-200',
+    suspended: 'bg-red-50 text-red-700 border border-red-200',
+    rejected: 'bg-gray-100 text-gray-500 border border-gray-200',
+  }
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${map[status] || map.rejected}`}>
+      {status}
+    </span>
+  )
+}
+
+// ── Business Table (cards on mobile, table on desktop) ────────
 function BusinessTable({ defaultStatus = '' }) {
   const qc = useQueryClient()
   const [page, setPage] = useState(1)
@@ -95,14 +110,12 @@ function BusinessTable({ defaultStatus = '' }) {
     onError: (e) => toast.error(getErrorMessage(e))
   })
 
-  const statusColor = { active: 'bg-green-100 text-green-700', pending: 'bg-amber-100 text-amber-700', suspended: 'bg-red-100 text-red-700', rejected: 'bg-gray-100 text-gray-500' }
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <h2 className="font-bold text-ink text-lg">Businesses</h2>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none">
+          className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 bg-white text-ink transition-all">
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
           <option value="active">Active</option>
@@ -112,107 +125,113 @@ function BusinessTable({ defaultStatus = '' }) {
       </div>
 
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Business','Category','Governorate','Plan','Status','Actions'].map(h => (
-                  <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data?.items?.map(b => (
-                <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-sm text-ink">{b.name_en}</div>
-                    <div className="text-xs text-gray-400">{b.name_ar}</div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{b.category?.name_en || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{b.governorate?.name_en || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-bold text-purple bg-purple-light px-2 py-0.5 rounded-full capitalize">{b.plan}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${statusColor[b.status]}`}>{b.status}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedBusiness(b) }}
-                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors" title="View Details">
-                        <Eye size={14} />
-                      </button>
-                      {b.status === 'pending' && (
-                        <>
-                          <button 
-                            disabled={approveMutation.isPending}
-                            onClick={(e) => { e.stopPropagation(); approveMutation.mutate(b.id) }}
-                            className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center transition-colors disabled:opacity-50" title="Approve">
-                            {approveMutation.isPending && approveMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <CheckCircle size={14} />}
-                          </button>
-                          <button 
-                            disabled={rejectMutation.isPending}
-                            onClick={(e) => { e.stopPropagation(); rejectMutation.mutate(b.id) }}
-                            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50" title="Reject">
-                            {rejectMutation.isPending && rejectMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <X size={14} />}
-                          </button>
-                        </>
-                      )}
-                      <button 
-                        disabled={deleteMutation.isPending}
-                        onClick={(e) => { e.stopPropagation(); if(confirm('Delete this business?')) deleteMutation.mutate(b.id) }}
-                        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50" title="Delete">
-                        {deleteMutation.isPending && deleteMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  {['Business','Category','Governorate','Plan','Status','Actions'].map(h => (
+                    <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-4 pb-4">
+              </thead>
+              <tbody>
+                {data?.items?.map(b => (
+                  <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-sm text-ink">{b.name_en}</div>
+                      <div className="text-xs text-gray-400">{b.name_ar}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{b.category?.name_en || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{b.governorate?.name_en || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-bold text-purple bg-purple-light px-2 py-0.5 rounded-full capitalize">{b.plan}</span>
+                    </td>
+                    <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                    <td className="px-4 py-3">
+                      <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data?.items?.map(b => (
+              <div key={b.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-bold text-sm text-ink">{b.name_en}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{b.name_ar}</div>
+                  </div>
+                  <StatusBadge status={b.status} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-gray-50 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Category</div>
+                    <div className="text-xs font-semibold text-ink">{b.category?.name_en || '—'}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Governorate</div>
+                    <div className="text-xs font-semibold text-ink">{b.governorate?.name_en || '—'}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Plan</div>
+                    <div className="text-xs font-bold text-purple capitalize">{b.plan}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                  <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4">
             <Pagination page={page} pages={data?.pages || 1} onPage={setPage} />
           </div>
-        </div>
+        </>
       )}
 
       {/* Business Details Modal */}
       {selectedBusiness && (
         <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
               <h3 className="font-bold text-ink">Business Details</h3>
-              <button onClick={() => setSelectedBusiness(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+              <button onClick={() => setSelectedBusiness(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-400 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-8 space-y-6 overflow-y-auto flex-1">
-              {/* Business header */}
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <div className="w-14 h-14 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
-                   {selectedBusiness.category?.icon || '🏢'}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                <div className="w-14 h-14 bg-white rounded-xl border border-gray-200 flex items-center justify-center text-2xl shadow-sm">
+                  {selectedBusiness.category?.icon || '🏢'}
                 </div>
                 <div>
-                   <h4 className="font-display text-xl font-normal text-ink">{selectedBusiness.name_en}</h4>
-                   <p className="text-gray-400 text-sm font-semibold">{selectedBusiness.category?.name_en} • {selectedBusiness.governorate?.name_en}</p>
+                  <h4 className="font-display text-xl font-normal text-ink">{selectedBusiness.name_en}</h4>
+                  <p className="text-gray-400 text-sm font-semibold">{selectedBusiness.category?.name_en} • {selectedBusiness.governorate?.name_en}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-100/50">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-100">
                   <p className="text-[10px] font-bold text-purple uppercase tracking-widest mb-1">Plan Type</p>
                   <p className="font-bold text-ink capitalize">{selectedBusiness.plan || 'basic'}</p>
                 </div>
-                <div className={`p-4 rounded-2xl border ${selectedBusiness.status === 'active' ? 'bg-green-50/30 border-green-100/50' : 'bg-amber-50/30 border-amber-100/50'}`}>
-                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${selectedBusiness.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>Current Status</p>
+                <div className={`p-4 rounded-2xl border ${selectedBusiness.status === 'active' ? 'bg-green-50/30 border-green-100' : 'bg-amber-50/30 border-amber-100'}`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${selectedBusiness.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>Status</p>
                   <p className="font-bold text-ink capitalize">{selectedBusiness.status}</p>
                 </div>
               </div>
 
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-pink-light text-pink flex items-center justify-center">
-                    <Star size={14} className="fill-pink" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="w-8 h-8 rounded-lg bg-pink-light text-pink flex items-center justify-center flex-shrink-0">
+                    <Mail size={14} />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vendor Email</p>
@@ -220,8 +239,8 @@ function BusinessTable({ defaultStatus = '' }) {
                   </div>
                 </div>
                 {selectedBusiness.phone && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0">
                       <Phone size={14} />
                     </div>
                     <div>
@@ -232,13 +251,12 @@ function BusinessTable({ defaultStatus = '' }) {
                 )}
               </div>
 
-              {/* ── Vendor Documents ─────────────────────────── */}
-              <div className="pt-2">
-                <div className="flex items-center gap-2 mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
                   <ShieldAlert size={16} className="text-amber-500" />
                   <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Verification Documents</p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'ID Proof', url: selectedBusiness.id_proof_url, required: true },
                     { label: 'Owner Photo', url: selectedBusiness.owner_photo_url, required: true },
@@ -251,19 +269,17 @@ function BusinessTable({ defaultStatus = '' }) {
                       {url ? (
                         url.match(/\.(pdf)$/i) ? (
                           <a href={url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url}
-                             target="_blank" rel="noreferrer"
-                             className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors">
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors">
                             <Download size={14} /> View PDF
                           </a>
                         ) : (
                           <button
                             onClick={() => setLightboxUrl(url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url)}
-                            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 hover:border-pink transition-colors cursor-pointer">
+                            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-200 hover:border-pink transition-colors cursor-pointer">
                             <img src={url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url}
-                                 className="w-full h-full object-cover"
-                                 alt={label}
-                                 onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
-                            />
+                              className="w-full h-full object-cover" alt={label}
+                              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
                             <div style={{display:'none'}} className="absolute inset-0 bg-gray-100 items-center justify-center text-gray-400 text-xs font-bold">Error</div>
                             <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/30 transition-all flex items-center justify-center">
                               <Eye size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -280,36 +296,29 @@ function BusinessTable({ defaultStatus = '' }) {
                 </div>
               </div>
 
-              <div className="pt-4 flex flex-wrap gap-3">
-                <a href={`/business/${selectedBusiness.slug}`} target="_blank" rel="noreferrer" 
-                   className="flex-1 min-w-[120px] py-3 border-[1.5px] border-gray-100 rounded-xl text-sm font-bold text-gray-500 text-center hover:bg-gray-50 transition-colors flex items-center justify-center">
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a href={`/business/${selectedBusiness.slug}`} target="_blank" rel="noreferrer"
+                  className="flex-1 min-w-[120px] py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 text-center hover:bg-gray-50 transition-colors flex items-center justify-center">
                   View Public
                 </a>
-                
                 {selectedBusiness.status === 'pending' ? (
                   <>
-                    <button 
-                      disabled={approveMutation.isPending}
+                    <button disabled={approveMutation.isPending}
                       onClick={() => approveMutation.mutate(selectedBusiness.id, { onSuccess: () => setSelectedBusiness(null) })}
                       className="flex-1 min-w-[120px] bg-green-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                      {approveMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={16} />}
-                      Approve
+                      {approveMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={16} />} Approve
                     </button>
-                    <button 
-                      disabled={rejectMutation.isPending}
+                    <button disabled={rejectMutation.isPending}
                       onClick={() => rejectMutation.mutate(selectedBusiness.id, { onSuccess: () => setSelectedBusiness(null) })}
                       className="flex-1 min-w-[120px] bg-amber-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                      {rejectMutation.isPending ? <Spinner className="w-4 h-4" /> : <X size={16} />}
-                      Reject
+                      {rejectMutation.isPending ? <Spinner className="w-4 h-4" /> : <X size={16} />} Reject
                     </button>
                   </>
                 ) : (
-                  <button 
-                    disabled={deleteMutation.isPending}
+                  <button disabled={deleteMutation.isPending}
                     onClick={() => { if(confirm('Delete this business?')) deleteMutation.mutate(selectedBusiness.id, { onSuccess: () => setSelectedBusiness(null) }) }}
                     className="flex-1 min-w-[120px] bg-red-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                    {deleteMutation.isPending ? <Spinner className="w-4 h-4" /> : <Trash2 size={16} />}
-                    Delete Shop
+                    {deleteMutation.isPending ? <Spinner className="w-4 h-4" /> : <Trash2 size={16} />} Delete Shop
                   </button>
                 )}
               </div>
@@ -318,24 +327,52 @@ function BusinessTable({ defaultStatus = '' }) {
         </div>
       )}
 
-      {/* ── Image Lightbox ─────────────────────────── */}
       {lightboxUrl && (
         <div className="fixed inset-0 z-[2000] bg-ink/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200"
-             onClick={() => setLightboxUrl(null)}>
+          onClick={() => setLightboxUrl(null)}>
           <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
             <button onClick={() => setLightboxUrl(null)}
-                    className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
+              className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
               <X size={20} />
             </button>
             <img src={lightboxUrl} className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl" alt="Document Preview" />
             <a href={lightboxUrl} download target="_blank" rel="noreferrer"
-               className="mt-4 flex items-center justify-center gap-2 text-white/60 hover:text-white text-sm font-bold transition-colors">
+              className="mt-4 flex items-center justify-center gap-2 text-white/60 hover:text-white text-sm font-bold transition-colors">
               <Download size={16} /> Download Document
             </a>
           </div>
         </div>
       )}
+    </div>
+  )
+}
 
+function BusinessActions({ b, approveMutation, rejectMutation, deleteMutation, setSelectedBusiness }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button onClick={(e) => { e.stopPropagation(); setSelectedBusiness(b) }}
+        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors" title="View Details">
+        <Eye size={14} />
+      </button>
+      {b.status === 'pending' && (
+        <>
+          <button disabled={approveMutation.isPending}
+            onClick={(e) => { e.stopPropagation(); approveMutation.mutate(b.id) }}
+            className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center transition-colors disabled:opacity-50" title="Approve">
+            {approveMutation.isPending && approveMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <CheckCircle size={14} />}
+          </button>
+          <button disabled={rejectMutation.isPending}
+            onClick={(e) => { e.stopPropagation(); rejectMutation.mutate(b.id) }}
+            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50" title="Reject">
+            {rejectMutation.isPending && rejectMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <X size={14} />}
+          </button>
+        </>
+      )}
+      <button disabled={deleteMutation.isPending}
+        onClick={(e) => { e.stopPropagation(); if(confirm('Delete this business?')) deleteMutation.mutate(b.id) }}
+        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50" title="Delete">
+        {deleteMutation.isPending && deleteMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
+      </button>
     </div>
   )
 }
@@ -344,9 +381,9 @@ function BusinessTable({ defaultStatus = '' }) {
 function MessagesTable() {
   const qc = useQueryClient()
   const [selectedMessage, setSelectedMessage] = useState(null)
-  const { data: messages, isLoading } = useQuery({ 
-    queryKey: ['admin-messages'], 
-    queryFn: contactApi.listMessages 
+  const { data: messages, isLoading } = useQuery({
+    queryKey: ['admin-messages'],
+    queryFn: contactApi.listMessages
   })
 
   const readMutation = useMutation({
@@ -354,7 +391,6 @@ function MessagesTable() {
     onSuccess: () => { toast.success('Marked as read'); qc.invalidateQueries(['admin-messages']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
-
   const deleteMutation = useMutation({
     mutationFn: contactApi.deleteMessage,
     onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries(['admin-messages']) },
@@ -368,11 +404,12 @@ function MessagesTable() {
         {isLoading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[900px]">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr className="border-b border-gray-100">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr className="border-b border-gray-200">
                     {['Date','From','Phone','Subject','Message','Status','Actions'].map(h => (
                       <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap">{h}</th>
                     ))}
@@ -380,7 +417,7 @@ function MessagesTable() {
                 </thead>
                 <tbody>
                   {messages?.map(m => (
-                    <tr key={m.id} className={`border-b border-gray-50 hover:bg-gray-50 transition ${!m.is_read ? 'bg-blue-50/30' : ''}`}>
+                    <tr key={m.id} className={`border-b border-gray-50 hover:bg-gray-50 transition ${!m.is_read ? 'bg-blue-50/20' : ''}`}>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{new Date(m.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-sm">
                         <div className="font-semibold text-ink">{m.name}</div>
@@ -397,17 +434,17 @@ function MessagesTable() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => { setSelectedMessage(m); if (!m.is_read) readMutation.mutate(m.id) }}
-                            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition" title="View Message">
+                            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition">
                             <Eye size={14} />
                           </button>
                           {!m.is_read && (
                             <button disabled={readMutation.isPending} onClick={() => readMutation.mutate(m.id)}
-                              className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition disabled:opacity-50" title="Mark as Read">
+                              className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition disabled:opacity-50">
                               <CheckCircle size={14} />
                             </button>
                           )}
                           <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this message?')) deleteMutation.mutate(m.id) }}
-                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition disabled:opacity-50" title="Delete">
+                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition disabled:opacity-50">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -416,93 +453,125 @@ function MessagesTable() {
                   ))}
                 </tbody>
               </table>
+              {messages?.length === 0 && (
+                <div className="p-12 text-center text-gray-400 text-sm font-semibold">No messages yet.</div>
+              )}
             </div>
-            {messages?.length === 0 && (
-              <div className="p-12 text-center text-gray-400 text-sm font-semibold">No messages yet.</div>
-            )}
-          </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {messages?.length === 0 && (
+                <div className="p-12 text-center text-gray-400 text-sm font-semibold bg-white rounded-2xl border border-gray-200">No messages yet.</div>
+              )}
+              {messages?.map(m => (
+                <div key={m.id} className={`bg-white rounded-2xl border border-gray-200 p-4 ${!m.is_read ? 'border-l-4 border-l-blue-400' : ''}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="font-bold text-sm text-ink">{m.name}</div>
+                      <div className="text-xs text-gray-400">{m.email}</div>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${m.is_read ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-600'}`}>
+                      {m.is_read ? 'Read' : 'Unread'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-ink mb-1 truncate">{m.subject}</div>
+                  <div className="text-xs text-gray-500 mb-3 line-clamp-2">{m.message}</div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <span className="text-[10px] text-gray-400">{new Date(m.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setSelectedMessage(m); if (!m.is_read) readMutation.mutate(m.id) }}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition">
+                        <Eye size={14} />
+                      </button>
+                      {!m.is_read && (
+                        <button disabled={readMutation.isPending} onClick={() => readMutation.mutate(m.id)}
+                          className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition disabled:opacity-50">
+                          <CheckCircle size={14} />
+                        </button>
+                      )}
+                      <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete?')) deleteMutation.mutate(m.id) }}
+                        className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition disabled:opacity-50">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* Message Details Modal */}
       {selectedMessage && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-8 duration-300">
-            {/* Modal Header with Logo */}
-            <div className="bg-ink p-10 flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="bg-ink p-8 flex flex-col items-center justify-center relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r from-pink to-purple" />
               <div className="flex flex-col items-center gap-3">
                 <Logo height={35} />
                 <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Administrator Portal</span>
               </div>
-              <button onClick={() => setSelectedMessage(null)} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all z-10">
+              <button onClick={() => setSelectedMessage(null)} className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all">
                 <X size={24} />
               </button>
             </div>
-
-            {/* Modal Content */}
-            <div className="p-10 space-y-8 bg-white">
-              <div className="space-y-4">
+            <div className="p-8 space-y-6 bg-white">
+              <div className="space-y-3">
                 <div className="inline-block px-3 py-1 bg-pink/5 text-pink text-[10px] font-black uppercase tracking-widest rounded-full border border-pink/10">
                   Contact Message Inquiry
                 </div>
-                <h2 className="font-display text-3xl font-normal text-ink leading-tight">{selectedMessage.subject}</h2>
+                <h2 className="font-display text-2xl font-normal text-ink leading-tight">{selectedMessage.subject}</h2>
               </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sender Name</p>
-                  <p className="font-display text-xl text-ink font-normal">{selectedMessage.name}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sender Name</p>
+                  <p className="font-display text-lg text-ink font-normal">{selectedMessage.name}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Received On</p>
-                  <p className="font-display text-xl text-ink font-normal">{new Date(selectedMessage.created_at).toLocaleDateString()}</p>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Received On</p>
+                  <p className="font-display text-lg text-ink font-normal">{new Date(selectedMessage.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-pink">
-                    <Mail size={18} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-pink flex-shrink-0">
+                    <Mail size={16} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Address</p>
-                    <p className="text-sm font-bold text-ink">{selectedMessage.email}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email</p>
+                    <p className="text-sm font-bold text-ink truncate">{selectedMessage.email}</p>
                   </div>
                 </div>
                 {selectedMessage.phone && (
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-purple">
-                      <Phone size={18} />
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-purple flex-shrink-0">
+                      <Phone size={16} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone</p>
                       <p className="text-sm font-bold text-ink">{selectedMessage.phone}</p>
                     </div>
                   </div>
                 )}
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
                   <MessageSquare size={14} className="text-gray-400" />
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Message Body</p>
                 </div>
-                <div className="bg-gray-50/50 p-6 rounded-2xl text-gray-600 text-base leading-relaxed whitespace-pre-wrap border border-gray-100 italic">
+                <div className="bg-gray-50 p-5 rounded-2xl text-gray-600 text-sm leading-relaxed whitespace-pre-wrap border border-gray-200 italic">
                   "{selectedMessage.message}"
                 </div>
               </div>
-
-              <div className="pt-6 flex gap-4">
-                <button 
-                  disabled={deleteMutation.isPending}
-                  onClick={() => { if(confirm('Permanently delete this message?')) deleteMutation.mutate(selectedMessage.id, { onSuccess: () => setSelectedMessage(null) }) }}
-                  className="flex-1 bg-red-50 text-red-600 border border-red-100 py-4 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
-                  <Trash2 size={18} />
-                  Delete Message
+              <div className="flex gap-3 pt-2">
+                <button disabled={deleteMutation.isPending}
+                  onClick={() => { if(confirm('Permanently delete?')) deleteMutation.mutate(selectedMessage.id, { onSuccess: () => setSelectedMessage(null) }) }}
+                  className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3.5 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
+                  <Trash2 size={16} /> Delete
                 </button>
                 <button onClick={() => setSelectedMessage(null)}
-                  className="w-32 py-4 bg-ink text-white rounded-2xl text-sm font-bold hover:bg-ink/90 transition-all border border-ink">
+                  className="w-28 py-3.5 bg-ink text-white rounded-2xl text-sm font-bold hover:bg-ink/90 transition-all">
                   Close
                 </button>
               </div>
@@ -516,11 +585,10 @@ function MessagesTable() {
 
 // ── Reviews Table ─────────────────────────────────────────────
 function ReviewsTable() {
-  const qc = useQueryClient()
   return (
     <div>
       <h2 className="font-bold text-ink text-lg mb-4">Pending Reviews</h2>
-      <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
         <div className="text-3xl mb-2">⭐</div>
         <p className="text-gray-400 text-sm">Review moderation will appear here.</p>
       </div>
@@ -535,54 +603,26 @@ function CategoriesTable() {
   const [editingCat, setEditingCat] = useState(null)
   const [form, setForm] = useState({ name_en: '', name_ar: '', slug: '', icon: '', is_featured: false })
 
-  const { data: cats, isLoading } = useQuery({ 
-    queryKey: ['admin-categories'], 
-    queryFn: () => categoryApi.list() 
-  })
+  const { data: cats, isLoading } = useQuery({ queryKey: ['admin-categories'], queryFn: () => categoryApi.list() })
 
   const saveMutation = useMutation({
-    mutationFn: (data) => editingCat 
-      ? adminApi.updateCategory(editingCat.id, data) 
-      : adminApi.createCategory(data),
-    onSuccess: () => {
-      toast.success(editingCat ? 'Category updated' : 'Category created')
-      qc.invalidateQueries(['admin-categories'])
-      handleClose()
-    },
+    mutationFn: (data) => editingCat ? adminApi.updateCategory(editingCat.id, data) : adminApi.createCategory(data),
+    onSuccess: () => { toast.success(editingCat ? 'Category updated' : 'Category created'); qc.invalidateQueries(['admin-categories']); handleClose() },
     onError: (e) => toast.error(getErrorMessage(e))
   })
-
   const deleteMutation = useMutation({
     mutationFn: adminApi.deleteCategory,
-    onSuccess: () => {
-      toast.success('Category deleted')
-      qc.invalidateQueries(['admin-categories'])
-    },
+    onSuccess: () => { toast.success('Category deleted'); qc.invalidateQueries(['admin-categories']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
 
   const handleEdit = (cat) => {
     setEditingCat(cat)
-    setForm({ 
-      name_en: cat.name_en, 
-      name_ar: cat.name_ar, 
-      slug: cat.slug, 
-      icon: cat.icon || '', 
-      is_featured: cat.is_featured 
-    })
+    setForm({ name_en: cat.name_en, name_ar: cat.name_ar, slug: cat.slug, icon: cat.icon || '', is_featured: cat.is_featured })
     setIsModalOpen(true)
   }
-
-  const handleClose = () => {
-    setIsModalOpen(false)
-    setEditingCat(null)
-    setForm({ name_en: '', name_ar: '', slug: '', icon: '', is_featured: false })
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    saveMutation.mutate(form)
-  }
+  const handleClose = () => { setIsModalOpen(false); setEditingCat(null); setForm({ name_en: '', name_ar: '', slug: '', icon: '', is_featured: false }) }
+  const handleSubmit = (e) => { e.preventDefault(); saveMutation.mutate(form) }
 
   return (
     <div>
@@ -594,89 +634,116 @@ function CategoriesTable() {
       </div>
 
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden text-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Icon</th>
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Name (EN/AR)</th>
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Slug</th>
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Businesses</th>
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Featured</th>
-                <th className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cats?.map(c => (
-                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-xl">{c.icon || '📁'}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-ink">{c.name_en}</div>
-                    <div className="text-xs text-gray-400">{c.name_ar}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">{c.slug}</td>
-                  <td className="px-4 py-3 font-bold text-purple">{c.business_count}</td>
-                  <td className="px-4 py-3">
-                    {c.is_featured ? <span className="text-[10px] font-bold text-pink bg-pink/10 px-2 py-0.5 rounded-full uppercase">Featured</span> : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleEdit(c)} className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors">
-                        <Edit2 size={14} />
-                      </button>
-                      <button 
-                        onClick={() => { if(confirm(`Delete "${c.name_en}"?`)) deleteMutation.mutate(c.id) }}
-                        disabled={deleteMutation.isPending}
-                        className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center transition-colors">
-                        {deleteMutation.isPending && deleteMutation.variables === c.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden text-sm">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  {['Icon','Name','Slug','Businesses','Featured','Actions'].map(h => (
+                    <th key={h} className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3 text-xs">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {cats?.map(c => (
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-xl">{c.icon || '📁'}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-ink">{c.name_en}</div>
+                      <div className="text-xs text-gray-400">{c.name_ar}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{c.slug}</td>
+                    <td className="px-4 py-3 font-bold text-purple">{c.business_count}</td>
+                    <td className="px-4 py-3">
+                      {c.is_featured ? <span className="text-[10px] font-bold text-pink bg-pink/10 px-2 py-0.5 rounded-full uppercase border border-pink/20">Featured</span> : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleEdit(c)} className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"><Edit2 size={14} /></button>
+                        <button onClick={() => { if(confirm(`Delete "${c.name_en}"?`)) deleteMutation.mutate(c.id) }} disabled={deleteMutation.isPending}
+                          className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center transition-colors">
+                          {deleteMutation.isPending && deleteMutation.variables === c.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {cats?.map(c => (
+              <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{c.icon || '📁'}</span>
+                    <div>
+                      <div className="font-bold text-sm text-ink">{c.name_en}</div>
+                      <div className="text-xs text-gray-400">{c.name_ar}</div>
+                    </div>
+                  </div>
+                  {c.is_featured && <span className="text-[10px] font-bold text-pink bg-pink/10 px-2 py-0.5 rounded-full uppercase border border-pink/20">Featured</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-gray-50 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Slug</div>
+                    <div className="text-xs font-mono text-gray-600 truncate">{c.slug}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Businesses</div>
+                    <div className="text-xs font-bold text-purple">{c.business_count}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                  <button onClick={() => handleEdit(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500 text-xs font-bold transition-colors">
+                    <Edit2 size={13} /> Edit
+                  </button>
+                  <button onClick={() => { if(confirm(`Delete "${c.name_en}"?`)) deleteMutation.mutate(c.id) }} disabled={deleteMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 text-xs font-bold transition-colors">
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 p-8 space-y-4">
+          <form onSubmit={handleSubmit} className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 p-8 space-y-4">
             <h3 className="font-bold text-ink text-xl mb-2">{editingCat ? 'Edit Category' : 'Add New Category'}</h3>
-            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (English)</label>
                 <input required value={form.name_en} onChange={e => setForm(f => ({ ...f, name_en: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-pink" placeholder="Restaurants" />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 bg-white text-ink transition-all" placeholder="Restaurants" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (Arabic)</label>
                 <input required value={form.name_ar} onChange={e => setForm(f => ({ ...f, name_ar: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-pink text-right" placeholder="مطاعم" />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 bg-white text-ink text-right transition-all" placeholder="مطاعم" />
               </div>
             </div>
-
             <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Slug</label>
               <input required value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-pink font-mono" placeholder="restaurants" />
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 bg-white font-mono text-ink transition-all" placeholder="restaurants" />
             </div>
-
             <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Icon (Emoji)</label>
               <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-pink" placeholder="🍔" maxLength={2} />
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 bg-white text-ink transition-all" placeholder="🍔" maxLength={2} />
             </div>
-
             <label className="flex items-center gap-3 cursor-pointer py-2 group">
               <input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} className="w-5 h-5 rounded border-gray-300 text-pink focus:ring-pink" />
               <span className="text-sm font-semibold text-gray-600 group-hover:text-ink">Featured Category</span>
             </label>
-
-            <div className="flex gap-3 pt-4">
-              <button type="button" onClick={handleClose} className="flex-1 py-3 border border-gray-100 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-50">Cancel</button>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={handleClose} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-50 transition-colors">Cancel</button>
               <button type="submit" disabled={saveMutation.isPending} className="flex-1 brand-btn py-3 rounded-xl text-sm font-bold disabled:opacity-50">
                 {saveMutation.isPending ? 'Saving...' : 'Save Category'}
               </button>
@@ -703,55 +770,69 @@ function VendorsTable({ onViewDashboard }) {
     <div>
       <h2 className="font-bold text-ink text-lg mb-4">Vendor Registrations</h2>
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Email','Registered At','Actions'].map(h => (
-                  <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data?.map(v => (
-                <tr key={v.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-semibold text-ink">{v.email}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{new Date(v.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => onViewDashboard(v)}
-                        className="w-8 h-8 rounded-lg bg-pink/10 text-pink hover:bg-pink hover:text-white flex items-center justify-center transition-colors" title="View Dashboard">
-                        <LayoutDashboard size={14} />
-                      </button>
-                      <button 
-                        disabled={deleteMutation.isPending}
-                        onClick={() => { if(confirm('Delete this vendor account? Warning: This will NOT delete their shops.')) deleteMutation.mutate(v.id) }}
-                        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50" title="Delete Vendor">
-                        {deleteMutation.isPending && deleteMutation.variables === v.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  {['Email','Registered At','Actions'].map(h => (
+                    <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {data?.length === 0 && (
-            <div className="p-12 text-center text-gray-400 text-sm">No vendors found.</div>
-          )}
-        </div>
+              </thead>
+              <tbody>
+                {data?.map(v => (
+                  <tr key={v.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-semibold text-ink">{v.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{new Date(v.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => onViewDashboard(v)} className="w-8 h-8 rounded-lg bg-pink/10 text-pink hover:bg-pink hover:text-white flex items-center justify-center transition-colors"><LayoutDashboard size={14} /></button>
+                        <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this vendor account?')) deleteMutation.mutate(v.id) }}
+                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50">
+                          {deleteMutation.isPending && deleteMutation.variables === v.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data?.length === 0 && <div className="p-12 text-center text-gray-400 text-sm">No vendors found.</div>}
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data?.length === 0 && <div className="p-12 text-center text-gray-400 text-sm bg-white rounded-2xl border border-gray-200">No vendors found.</div>}
+            {data?.map(v => (
+              <div key={v.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="font-bold text-sm text-ink mb-1 truncate">{v.email}</div>
+                <div className="text-xs text-gray-400 mb-3">Registered {new Date(v.created_at).toLocaleDateString()}</div>
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  <button onClick={() => onViewDashboard(v)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-pink/10 text-pink hover:bg-pink hover:text-white text-xs font-bold transition-colors">
+                    <LayoutDashboard size={13} /> Dashboard
+                  </button>
+                  <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this vendor?')) deleteMutation.mutate(v.id) }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 text-xs font-bold transition-colors disabled:opacity-50">
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
 }
 
-// ── Vendor Preview Component ──────────────────────────────────
+// ── Vendor Preview ────────────────────────────────────────────
 function VendorPreview({ vendor, onBack }) {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin-vendor-stats', vendor.id],
     queryFn: () => adminApi.getVendorStats(vendor.id)
   })
-
   const { data: shops, isLoading: shopsLoading } = useQuery({
     queryKey: ['admin-vendor-shops', vendor.id],
     queryFn: () => adminApi.getVendorBusinesses(vendor.id)
@@ -768,55 +849,45 @@ function VendorPreview({ vendor, onBack }) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <button onClick={onBack} className="text-pink text-xs font-bold uppercase tracking-widest mb-2 hover:underline flex items-center gap-1">
-             ← Back to Vendors
-          </button>
-          <h1 className="font-display text-3xl font-normal text-ink">Vendor Dashboard: <span className="text-pink">{vendor.email}</span></h1>
-        </div>
+      <header className="mb-6">
+        <button onClick={onBack} className="text-pink text-xs font-bold uppercase tracking-widest mb-2 hover:underline flex items-center gap-1">← Back to Vendors</button>
+        <h1 className="font-display text-2xl md:text-3xl font-normal text-ink">Vendor: <span className="text-pink break-all">{vendor.email}</span></h1>
       </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {overviewStats.map(stat => (
-          <div key={stat.label} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3">
-             <div className={`w-10 h-10 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
-                <stat.icon size={20} />
-             </div>
-             <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{stat.label}</p>
-                <p className="text-2xl font-black text-ink">{stat.value}</p>
-             </div>
+          <div key={stat.label} className="bg-white p-4 md:p-6 rounded-3xl border border-gray-200 flex flex-col gap-3">
+            <div className={`w-10 h-10 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}><stat.icon size={20} /></div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{stat.label}</p>
+              <p className="text-2xl font-black text-ink">{stat.value}</p>
+            </div>
           </div>
         ))}
       </div>
-
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-8">
-        <h2 className="text-lg font-bold text-ink mb-6">Vendor’s Shops ({shops?.length || 0})</h2>
-        <div className="space-y-4">
+      <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden p-6 md:p-8">
+        <h2 className="text-lg font-bold text-ink mb-5">Shops ({shops?.length || 0})</h2>
+        <div className="space-y-3">
           {shops?.map(shop => (
-            <div key={shop.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-hover">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl border border-gray-100 flex items-center justify-center p-1.5 overflow-hidden">
-                  {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-lg" /> : <Building2 className="text-gray-300" />}
+            <div key={shop.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-white rounded-xl border border-gray-200 flex items-center justify-center p-1 overflow-hidden flex-shrink-0">
+                  {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-lg" /> : <Building2 className="text-gray-300" size={16} />}
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm text-ink">{shop.name_en}</h3>
-                  <p className="text-xs text-gray-400 font-semibold">{shop.category?.name_en} • {shop.governorate?.name_en}</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-ink truncate">{shop.name_en}</h3>
+                  <p className="text-xs text-gray-400 font-semibold truncate">{shop.category?.name_en} • {shop.governorate?.name_en}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                   <p className="text-xs font-bold text-ink">{shop.view_count} views</p>
-                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{shop.rating_avg} ★</p>
+              <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                <div className="hidden sm:block text-right">
+                  <p className="text-xs font-bold text-ink">{shop.view_count} views</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">{shop.rating_avg} ★</p>
                 </div>
-                <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer" className="p-2 bg-white border border-gray-100 text-gray-400 hover:text-pink rounded-lg transition-colors">
-                  <Eye size={16} />
-                </a>
+                <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer" className="p-2 bg-white border border-gray-200 text-gray-400 hover:text-pink rounded-lg transition-colors"><Eye size={16} /></a>
               </div>
             </div>
           ))}
-          {!shops?.length && <p className="text-center text-gray-400 py-8 font-semibold">No businesses found for this vendor.</p>}
+          {!shops?.length && <p className="text-center text-gray-400 py-8 font-semibold">No businesses found.</p>}
         </div>
       </div>
     </div>
@@ -830,7 +901,6 @@ function AdminDashboard() {
   const location = useLocation()
   const activeTab = new URLSearchParams(location.search).get('tab') || 'overview'
   const [viewingVendor, setViewingVendor] = useState(null)
-
   const { data: stats } = useQuery({ queryKey: ['admin-stats'], queryFn: adminApi.stats })
 
   const navItems = [
@@ -845,20 +915,16 @@ function AdminDashboard() {
     { id: 'reviews', label: 'Reviews', icon: Star },
   ]
 
-  // Components for each tab
   const renderTab = () => {
     if (viewingVendor) return <VendorPreview vendor={viewingVendor} onBack={() => setViewingVendor(null)} />
-
     switch (activeTab) {
       case 'overview':
         return (
           <div>
-            <h1 className="font-display text-3xl font-normal text-ink mb-6">Dashboard Overview</h1>
-            {!stats ? (
-              <div className="flex justify-center py-20"><Spinner /></div>
-            ) : (
+            <h1 className="font-display text-2xl md:text-3xl font-normal text-ink mb-6">Dashboard Overview</h1>
+            {!stats ? <div className="flex justify-center py-20"><Spinner /></div> : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <StatCard icon="🏢" label="Total Businesses" value={stats?.total_businesses} sub={`${stats?.active_businesses} active`} color="bg-purple-light" />
                   <StatCard icon="⏳" label="Pending Review" value={stats?.pending_businesses} sub="Awaiting approval" color="bg-amber-50" />
                   <StatCard icon="⭐" label="Total Reviews" value={stats?.total_reviews} sub="All time" color="bg-orange-light" />
@@ -866,7 +932,7 @@ function AdminDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[['📁','Categories',stats?.total_categories],['📍','Governorates',stats?.total_governorates],['✅','Verified',stats?.active_businesses]].map(([icon,label,val]) => (
-                    <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+                    <div key={label} className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
                       <span className="text-3xl">{icon}</span>
                       <div>
                         <div className="font-display text-2xl brand-text font-normal">{val ?? '–'}</div>
@@ -882,12 +948,9 @@ function AdminDashboard() {
       case 'businesses': return <BusinessTable key="active" defaultStatus="active" />
       case 'requests': return <BusinessTable key="pending" defaultStatus="pending" />
       case 'history': return <BusinessTable key="history" defaultStatus="rejected" />
-      case 'vendors':
-        return <VendorsTable onViewDashboard={setViewingVendor} />
-      case 'vendor-control':
-        return <VendorControlTable />
-      case 'categories':
- return <CategoriesTable />
+      case 'vendors': return <VendorsTable onViewDashboard={setViewingVendor} />
+      case 'vendor-control': return <VendorControlTable />
+      case 'categories': return <CategoriesTable />
       case 'messages': return <MessagesTable />
       case 'reviews': return <ReviewsTable />
       default: return null
@@ -895,33 +958,31 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 flex overflow-x-hidden">
-      <aside className="w-56 bg-ink border-r border-white/8 flex flex-col fixed left-0 top-16 bottom-0 z-30">
-        <div className="px-4 py-5 border-b border-white/8">
+    <div className="min-h-screen bg-gray-50 pt-8 flex overflow-x-hidden">
+      {/* Sidebar — desktop only */}
+      <aside className="hidden lg:flex w-56 bg-ink border-r border-white/8 flex-col fixed left-0 top-16 bottom-0 z-30">
+        <div className="px-4 py-5 border-b border-white/10">
           <p className="text-[10px] font-bold text-white/30 tracking-widest uppercase">Admin Panel</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => { navigate(`/admin?tab=${id}`); setViewingVendor(null) }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all text-left ${
-                activeTab === id
-                  ? 'text-white'
-                  : 'text-white/45 hover:text-white/70 hover:bg-white/5'
-              }`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all text-left ${activeTab === id ? 'text-white' : 'text-white/45 hover:text-white/70 hover:bg-white/5'}`}
               style={activeTab === id ? { background: 'linear-gradient(90deg,rgba(232,49,122,.25),rgba(91,45,142,.25))' } : {}}>
               <Icon size={16} />
               {label}
             </button>
           ))}
         </nav>
-        <div className="p-3 border-t border-white/8">
+        <div className="p-3 border-t border-white/10">
           <button onClick={() => { logout(); navigate('/admin/login') }}
             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-white/40 hover:text-white/70 rounded-xl hover:bg-white/5 transition-all">
             <LogOut size={16} /> Log Out
           </button>
         </div>
       </aside>
-      <main className="flex-1 ml-56 p-4 md:p-8 min-w-0 w-full overflow-x-hidden">
+      {/* Main content */}
+      <main className="flex-1 lg:ml-56 p-4 md:p-8 min-w-0 w-full overflow-x-hidden">
         {renderTab()}
       </main>
     </div>
@@ -935,16 +996,13 @@ export default function AdminPage() {
   const location = useLocation()
 
   useEffect(() => {
-    if (isAdmin && location.pathname === '/admin/login') {
-      navigate('/admin', { replace: true })
-    }
+    if (isAdmin && location.pathname === '/admin/login') navigate('/admin', { replace: true })
   }, [isAdmin, location.pathname, navigate])
 
   return isAdmin ? <AdminDashboard /> : <AdminLoginPage />
 }
 
-// ── Vendor Control (Advanced Components) ──────────────────────
-
+// ── Vendor Control ─────────────────────────────────────────────
 function VendorControlTable() {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -953,66 +1011,46 @@ function VendorControlTable() {
   const [selectedApptBiz, setSelectedApptBiz] = useState(null)
   const [selectedServiceBiz, setSelectedServiceBiz] = useState(null)
   const [selectedEditBiz, setSelectedEditBiz] = useState(null)
+  const [viewingVendor, setViewingVendor] = useState(null)
 
-  const { data: shops, isLoading } = useQuery({ 
-      queryKey: ['admin-vendor-control'], 
-      queryFn: adminApi.vendorControl 
-  })
-
+  const { data: shops, isLoading } = useQuery({ queryKey: ['admin-vendor-control'], queryFn: adminApi.vendorControl })
   const { data: allCategories } = useQuery({ queryKey: ['admin-categories-filter'], queryFn: categoryApi.list })
   const { data: allGovernorates } = useQuery({ queryKey: ['admin-govs-filter'], queryFn: governorateApi.list })
-
   const qc = useQueryClient()
 
-  // Mutations
   const deleteVendorMutation = useMutation({
     mutationFn: adminApi.deleteVendor,
     onSuccess: () => { toast.success('Vendor account purged'); qc.invalidateQueries(['admin-vendor-control']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
-
   const toggleVendorStatusMutation = useMutation({
     mutationFn: ({ id, isActive }) => adminApi.toggleVendorStatus(id, isActive),
-    onSuccess: () => { toast.success('Account status synchronized'); qc.invalidateQueries(['admin-vendor-control']) },
+    onSuccess: () => { toast.success('Account status updated'); qc.invalidateQueries(['admin-vendor-control']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
-
   const deleteBusinessMutation = useMutation({
     mutationFn: businessApi.adminDelete,
-    onSuccess: () => { toast.success('Shop record deleted'); qc.invalidateQueries(['admin-vendor-control']) },
+    onSuccess: () => { toast.success('Shop deleted'); qc.invalidateQueries(['admin-vendor-control']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
-
   const updateBusinessStatusMutation = useMutation({
     mutationFn: ({ id, status }) => businessApi.adminUpdate(id, { status }),
     onSuccess: () => { toast.success('Shop status updated'); qc.invalidateQueries(['admin-vendor-control']) },
     onError: (e) => toast.error(getErrorMessage(e))
   })
 
-  // Filter by search and dropdowns
   const filteredShops = shops?.filter(s => {
-    const matchesSearch = !search || 
-      s.name_en.toLowerCase().includes(search.toLowerCase()) || 
-      s.owner_email?.toLowerCase().includes(search.toLowerCase())
-    
+    const matchesSearch = !search || s.name_en.toLowerCase().includes(search.toLowerCase()) || s.owner_email?.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = !selectedCategory || s.category?.id?.toString() === selectedCategory?.toString()
     const matchesGov = !selectedGov || s.governorate?.id?.toString() === selectedGov?.toString()
     const matchesStatus = !selectedStatus || s.status === selectedStatus
-
     return matchesSearch && matchesCategory && matchesGov && matchesStatus
   })
 
-  // Group by vendor owner ID
   const groupedVendors = filteredShops?.reduce((acc, shop) => {
     const ownerId = shop.owner?.id || 'ORPHAN_ACCOUNT'
     if (!acc[ownerId]) {
-      acc[ownerId] = { 
-        owner: shop.owner, 
-        email: shop.owner_email || shop.owner?.email || 'ORPHAN',
-        items: [], 
-        totalViews: 0, 
-        avgRating: 0 
-      }
+      acc[ownerId] = { owner: shop.owner, email: shop.owner_email || shop.owner?.email || 'ORPHAN', items: [], totalViews: 0, avgRating: 0 }
     }
     acc[ownerId].items.push(shop)
     acc[ownerId].totalViews += (shop.view_count || 0)
@@ -1020,7 +1058,6 @@ function VendorControlTable() {
     return acc
   }, {})
 
-  // Compute final averages for each vendor
   if (groupedVendors) {
     Object.keys(groupedVendors).forEach(id => {
       const v = groupedVendors[id]
@@ -1030,271 +1067,199 @@ function VendorControlTable() {
 
   if (isLoading) return <Spinner />
 
+  if (viewingVendor) return <VendorPreview vendor={viewingVendor} onBack={() => setViewingVendor(null)} />
+
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 pb-20">
-      {/* Header with Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-zap-gradient rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3 group hover:rotate-0 transition-transform">
-             <Zap size={28} />
+          <div className="w-12 h-12 bg-zap-gradient rounded-2xl flex items-center justify-center text-white shadow-xl">
+            <Zap size={24} />
           </div>
           <div>
-            <h1 className="font-display text-4xl font-normal text-ink">Vendor Control</h1>
-            <p className="text-gray-400 text-sm font-semibold tracking-tight">Centralized Administrative Registry</p>
+            <h1 className="font-display text-2xl md:text-3xl font-normal text-ink">Vendor Control</h1>
+            <p className="text-gray-400 text-sm font-semibold">Centralized Administrative Registry</p>
           </div>
         </div>
-        
-        <div className="flex flex-col md:items-end gap-3">
-           <div className="relative w-full md:w-80 group">
-              <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within:text-pink transition-colors">
-                 <Search size={18} />
-              </div>
-              <input 
-                type="text" 
-                placeholder="Search shops or vendors..." 
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full bg-white border border-gray-100 rounded-2xl pl-11 pr-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-pink/10 focus:border-pink transition-all shadow-sm"
-              />
-           </div>
-           <div className="flex items-center gap-2">
-              <p className="text-[10px] text-pink font-black uppercase tracking-[0.2em] bg-pink/5 px-3 py-1 rounded-full border border-pink/10">Administrator Mode</p>
-              <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest">{filteredShops?.length || 0} Results</p>
-           </div>
+        <div className="flex flex-col md:items-end gap-2">
+          <div className="relative w-full md:w-72 group">
+            <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within:text-pink transition-colors"><Search size={16} /></div>
+            <input type="text" placeholder="Search shops or vendors..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-pink/10 focus:border-pink transition-all" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-pink font-black uppercase tracking-[0.2em] bg-pink/5 px-3 py-1 rounded-full border border-pink/10">Administrator Mode</span>
+            <span className="text-[9px] text-gray-400 font-bold uppercase">{filteredShops?.length || 0} Results</span>
+          </div>
         </div>
       </div>
 
-      {/* Advanced Filter Bar */}
-      <div className="space-y-6">
-        {/* Category Scroll */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide px-1">
-           <button 
-             onClick={() => setSelectedCategory(null)}
-             className={`flex-none px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${!selectedCategory ? 'bg-pink text-white border-pink shadow-lg shadow-pink/20 scale-105' : 'bg-white text-gray-400 border-gray-100 hover:border-pink/30 hover:text-pink'}`}>
-             All Categories
-           </button>
-           {allCategories?.map(cat => (
-             <button 
-               key={cat.id}
-               onClick={() => setSelectedCategory(cat.id)}
-               className={`flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${selectedCategory === cat.id ? 'bg-pink text-white border-pink shadow-lg shadow-pink/20 scale-105' : 'bg-white text-gray-400 border-gray-100 hover:border-pink/30 hover:text-pink'}`}>
-               <span className="text-base">{cat.icon || '📁'}</span>
-               {cat.name_en}
-             </button>
-           ))}
+      {/* Filters */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button onClick={() => setSelectedCategory(null)}
+            className={`flex-none px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${!selectedCategory ? 'bg-pink text-white border-pink' : 'bg-white text-gray-400 border-gray-200 hover:border-pink/30 hover:text-pink'}`}>
+            All
+          </button>
+          {allCategories?.map(cat => (
+            <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+              className={`flex-none flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${selectedCategory === cat.id ? 'bg-pink text-white border-pink' : 'bg-white text-gray-400 border-gray-200 hover:border-pink/30 hover:text-pink'}`}>
+              <span>{cat.icon || '📁'}</span>{cat.name_en}
+            </button>
+          ))}
         </div>
 
-        {/* Secondary Filters & Bulk Actions */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/50 p-6 rounded-[2.5rem] border border-gray-100 backdrop-blur-sm">
-           <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm group focus-within:border-pink transition-all">
-                 <MapPin size={14} className="text-gray-300 group-focus-within:text-pink" />
-                 <select 
-                   value={selectedGov || ''} 
-                   onChange={e => setSelectedGov(e.target.value || null)}
-                   className="bg-transparent border-none outline-none text-[11px] font-black uppercase tracking-widest text-ink min-w-[160px]">
-                    <option value="">All Governorates</option>
-                    {allGovernorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
-                 </select>
-              </div>
-              
-              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm group focus-within:border-pink transition-all">
-                 <CheckCircle size={14} className="text-gray-300 group-focus-within:text-pink" />
-                 <select 
-                   value={selectedStatus || ''} 
-                   onChange={e => setSelectedStatus(e.target.value || null)}
-                   className="bg-transparent border-none outline-none text-[11px] font-black uppercase tracking-widest text-ink min-w-[160px]">
-                    <option value="">All Statuses</option>
-                    <option value="active">Active Only</option>
-                    <option value="pending">Pending Only</option>
-                    <option value="rejected">Rejected Only</option>
-                 </select>
-              </div>
-
-              {(selectedCategory || selectedGov || selectedStatus || search) && (
-                 <button 
-                   onClick={() => { setSelectedCategory(null); setSelectedGov(null); setSelectedStatus(null); setSearch('') }}
-                   className="text-pink text-[10px] font-black uppercase tracking-widest hover:underline px-2 transition-all">
-                   Reset All
-                 </button>
-              )}
-           </div>
-
-           {/* Bulk Stats & Export */}
-           <div className="flex items-center gap-6">
-              <div className="hidden xl:flex items-center gap-6 pr-6 border-r border-gray-100">
-                 <div className="text-center">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Active</p>
-                    <p className="text-xs font-black text-emerald-500">{filteredShops?.filter(s => s.status === 'active').length}</p>
-                 </div>
-                 <div className="text-center">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Pending</p>
-                    <p className="text-xs font-black text-amber-500">{filteredShops?.filter(s => s.status === 'pending').length}</p>
-                 </div>
-              </div>
-              
-              <button 
-                onClick={() => {
-                  const csv = [
-                    ['Shop Name', 'Category', 'Vendor', 'Status', 'Views', 'Rating'].join(','),
-                    ...filteredShops?.map(s => [s.name_en, s.category?.name_en, s.owner_email, s.status, s.view_count, s.rating_avg].join(','))
-                  ].join('\n')
-                  const blob = new Blob([csv], { type: 'text/csv' })
-                  const url = window.URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.setAttribute('hidden', '')
-                  a.setAttribute('href', url)
-                  a.setAttribute('download', `vendor-control-export-${new Date().toISOString().split('T')[0]}.csv`)
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                  toast.success('Registry exported to CSV')
-                }}
-                className="flex items-center gap-2 px-5 py-3 bg-ink text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
-                 <Download size={14} /> Export CSV
-              </button>
-           </div>
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200">
+          <div className="flex items-center gap-2 bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200">
+            <MapPin size={13} className="text-gray-400" />
+            <select value={selectedGov || ''} onChange={e => setSelectedGov(e.target.value || null)}
+              className="bg-transparent border-none outline-none text-xs font-bold text-ink min-w-[130px]">
+              <option value="">All Governorates</option>
+              {allGovernorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2 bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200">
+            <CheckCircle size={13} className="text-gray-400" />
+            <select value={selectedStatus || ''} onChange={e => setSelectedStatus(e.target.value || null)}
+              className="bg-transparent border-none outline-none text-xs font-bold text-ink min-w-[130px]">
+              <option value="">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="pending">Pending Only</option>
+              <option value="rejected">Rejected Only</option>
+            </select>
+          </div>
+          {(selectedCategory || selectedGov || selectedStatus || search) && (
+            <button onClick={() => { setSelectedCategory(null); setSelectedGov(null); setSelectedStatus(null); setSearch('') }}
+              className="text-pink text-xs font-black uppercase tracking-widest hover:underline">Reset</button>
+          )}
+          <div className="ml-auto flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-4">
+              <span className="text-[10px] font-black text-emerald-500">{filteredShops?.filter(s => s.status === 'active').length} active</span>
+              <span className="text-[10px] font-black text-amber-500">{filteredShops?.filter(s => s.status === 'pending').length} pending</span>
+            </div>
+            <button onClick={() => {
+              const csv = [['Shop Name','Category','Vendor','Status','Views','Rating'].join(','), ...filteredShops?.map(s => [s.name_en, s.category?.name_en, s.owner_email, s.status, s.view_count, s.rating_avg].join(','))].join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = window.URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.setAttribute('hidden',''); a.setAttribute('href',url); a.setAttribute('download',`export-${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(a); a.click(); document.body.removeChild(a)
+              toast.success('Exported to CSV')
+            }} className="flex items-center gap-2 px-4 py-2 bg-ink text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all">
+              <Download size={13} /> Export
+            </button>
+          </div>
         </div>
       </div>
 
       {groupedVendors && Object.entries(groupedVendors).length > 0 ? Object.entries(groupedVendors).map(([id, data]) => (
-        <div key={id} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-500 hover:shadow-xl hover:border-pink/10 transition-all">
+        <div key={id} className="bg-white rounded-3xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-pink/20 transition-all">
           {/* Vendor Header */}
-          <div className="bg-gradient-to-r from-gray-50 to-white px-8 py-7 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-             <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white rounded-2xl border border-gray-100 flex items-center justify-center text-gray-400 shadow-sm">
-                   <Users size={24} />
+          <div className="bg-gray-50 px-5 md:px-8 py-5 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white rounded-2xl border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
+                <Users size={20} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base md:text-lg font-bold text-ink truncate">{data.email}</h3>
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${data.owner?.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                    {data.owner?.is_active ? 'Active' : 'Suspended'}
+                  </span>
+                  <span className="text-[9px] font-bold text-gray-400">{data.items.length} shops</span>
+                  {data.owner?.created_at && <span className="text-[9px] font-bold text-gray-300">Since {new Date(data.owner.created_at).toLocaleDateString()}</span>}
                 </div>
-                <div>
-                   <h3 className="text-xl font-display font-normal text-ink mb-1">{data.email}</h3>
-                   <div className="flex items-center gap-3">
-                      <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${data.owner?.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                         {data.owner?.is_active ? 'Account Active' : 'Account Suspended'}
-                      </span>
-                      {data.owner?.created_at && (
-                         <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest italic">Since {new Date(data.owner.created_at).toLocaleDateString()}</span>
-                      )}
-                      <span className="text-[9px] font-bold text-ink uppercase tracking-widest">{data.items.length} units</span>
-                   </div>
-                </div>
-             </div>
-             
-             <div className="flex items-center gap-6">
-                <div className="flex items-center gap-6 px-6 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                   <div className="text-center">
-                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Visits</p>
-                      <p className="text-sm font-black text-ink">{data.totalViews.toLocaleString()}</p>
-                   </div>
-                   <div className="w-px h-6 bg-gray-100" />
-                   <div className="text-center">
-                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Rating</p>
-                      <p className="text-sm font-black text-ink">{data.avgRating} ★</p>
-                   </div>
-                </div>
+              </div>
+            </div>
 
-                <div className="flex items-center gap-2">
-                   {data.items.some(s => s.status === 'pending') && (
-                      <button 
-                        disabled={updateBusinessStatusMutation.isPending}
-                        onClick={() => {
-                           if(confirm(`Approve all pending shops for ${data.email}?`)) {
-                              data.items.filter(s => s.status === 'pending').forEach(s => {
-                                 updateBusinessStatusMutation.mutate({ id: s.id, status: 'active' })
-                              })
-                           }
-                        }}
-                        className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all"
-                        title="Bulk Approve All Pending">
-                         {updateBusinessStatusMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={18} />}
-                      </button>
-                   )}
-                   <button 
-                     disabled={deleteVendorMutation.isPending || toggleVendorStatusMutation.isPending}
-                     onClick={() => toggleVendorStatusMutation.mutate({ id: data.owner.id, isActive: !data.owner.is_active })}
-                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${data.owner?.is_active ? 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
-                     title={data.owner?.is_active ? 'Suspend Vendor Account' : 'Activate Vendor Account'}>
-                      {toggleVendorStatusMutation.isPending && toggleVendorStatusMutation.variables?.id === data.owner?.id ? <Spinner className="w-4 h-4" /> : <ShieldAlert size={18} />}
-                   </button>
-                   <button 
-                     disabled={deleteVendorMutation.isPending}
-                     onClick={() => { if(confirm(`Completely purge account ${data.email}?`)) deleteVendorMutation.mutate(data.owner.id) }}
-                     className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all"
-                     title="Purge Vendor Profile & All Associated Data">
-                      {deleteVendorMutation.isPending && deleteVendorMutation.variables === data.owner?.id ? <Spinner className="w-4 h-4" /> : <Trash2 size={18} />}
-                   </button>
-                   <button onClick={() => setViewingVendor({ email: data.email })} className="brand-btn px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-pink/10" title="View Full Vendor Dashboard">
-                      Overview
-                   </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-4 px-4 py-2.5 bg-white rounded-xl border border-gray-200">
+                <div className="text-center">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Visits</p>
+                  <p className="text-sm font-black text-ink">{data.totalViews.toLocaleString()}</p>
                 </div>
-             </div>
+                <div className="w-px h-5 bg-gray-200" />
+                <div className="text-center">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Rating</p>
+                  <p className="text-sm font-black text-ink">{data.avgRating} ★</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {data.items.some(s => s.status === 'pending') && (
+                  <button disabled={updateBusinessStatusMutation.isPending}
+                    onClick={() => { if(confirm(`Approve all pending shops for ${data.email}?`)) data.items.filter(s => s.status === 'pending').forEach(s => updateBusinessStatusMutation.mutate({ id: s.id, status: 'active' })) }}
+                    className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all border border-emerald-100">
+                    {updateBusinessStatusMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={17} />}
+                  </button>
+                )}
+                <button disabled={toggleVendorStatusMutation.isPending}
+                  onClick={() => toggleVendorStatusMutation.mutate({ id: data.owner.id, isActive: !data.owner.is_active })}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border ${data.owner?.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white border-amber-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-100'}`}>
+                  {toggleVendorStatusMutation.isPending && toggleVendorStatusMutation.variables?.id === data.owner?.id ? <Spinner className="w-4 h-4" /> : <ShieldAlert size={17} />}
+                </button>
+                <button disabled={deleteVendorMutation.isPending}
+                  onClick={() => { if(confirm(`Purge account ${data.email}?`)) deleteVendorMutation.mutate(data.owner.id) }}
+                  className="w-9 h-9 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all border border-red-100">
+                  {deleteVendorMutation.isPending && deleteVendorMutation.variables === data.owner?.id ? <Spinner className="w-4 h-4" /> : <Trash2 size={17} />}
+                </button>
+                <button onClick={() => setViewingVendor({ email: data.email })} className="brand-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                  Overview
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {data.items.map(shop => (
-              <div key={shop.id} className="group p-6 bg-gray-50 rounded-[2rem] border border-gray-100 hover:bg-white hover:border-pink/20 hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                {/* Shop Status Banner */}
-                <div className={`absolute top-0 left-0 right-0 h-1.5 ${
-                   shop.status === 'active' ? 'bg-emerald-500' : 
-                   shop.status === 'pending' ? 'bg-amber-500' : 'bg-red-500'
-                }`} />
-
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white rounded-2xl border border-gray-100 flex items-center justify-center p-1.5 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
-                       {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-xl" /> : (shop.category?.icon || '🏢')}
+              <div key={shop.id} className="group p-5 bg-gray-50 rounded-2xl border border-gray-200 hover:bg-white hover:border-pink/20 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${shop.status === 'active' ? 'bg-emerald-500' : shop.status === 'pending' ? 'bg-amber-500' : 'bg-red-400'}`} />
+                <div className="flex items-start justify-between mb-4 mt-1">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 flex items-center justify-center p-1 overflow-hidden flex-shrink-0">
+                      {shop.logo_url ? <img src={shop.logo_url?.startsWith('/') ? import.meta.env.VITE_API_URL + shop.logo_url : shop.logo_url} className="w-full h-full object-cover rounded-lg" /> : <span className="text-lg">{shop.category?.icon || '🏢'}</span>}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="font-bold text-sm text-ink group-hover:text-pink transition-colors line-clamp-1">{shop.name_en}</h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{shop.category?.name_en} • {shop.governorate?.name_en}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">{shop.category?.name_en} • {shop.governorate?.name_en}</p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm ${
-                       shop.status === 'active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 
-                       shop.status === 'pending' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200'
-                    }`}>{shop.status}</span>
-                  </div>
+                  <StatusBadge status={shop.status} />
                 </div>
 
-                {/* Approve/Reject Actions for Pending */}
                 {shop.status === 'pending' && (
-                   <div className="flex gap-2 mb-6 animate-in slide-in-from-top-2">
-                      <button 
-                        onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'active' })}
-                        className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
-                        <CheckCircle size={14} /> Approve
-                      </button>
-                      <button 
-                        onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'rejected' })}
-                        className="flex-1 bg-white text-gray-400 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-100 hover:bg-red-500 hover:text-white hover:border-red-500 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm">
-                        <XCircle size={14} /> Reject
-                      </button>
-                   </div>
+                  <div className="flex gap-2 mb-4">
+                    <button onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'active' })}
+                      className="flex-1 bg-emerald-500 text-white py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5">
+                      <CheckCircle size={12} /> Approve
+                    </button>
+                    <button onClick={() => updateBusinessStatusMutation.mutate({ id: shop.id, status: 'rejected' })}
+                      className="flex-1 bg-white text-gray-400 py-2 rounded-xl text-[10px] font-black uppercase border border-gray-200 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-1.5">
+                      <XCircle size={12} /> Reject
+                    </button>
+                  </div>
                 )}
 
-                <div className="grid grid-cols-5 gap-2">
-                  <button onClick={() => setSelectedApptBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-blue-500 hover:text-white transition-all group/btn shadow-sm" title="Manage Appointments">
-                    <Clock size={14} />
-                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Appts</span>
-                  </button>
-                  <button onClick={() => setSelectedServiceBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-purple-500 hover:text-white transition-all group/btn shadow-sm" title="Manage Services & Menu">
-                    <Zap size={14} />
-                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Serv</span>
-                  </button>
-                  <button onClick={() => setSelectedEditBiz(shop)} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-amber-500 hover:text-white transition-all group/btn shadow-sm" title="Edit Shop Profile">
-                    <Edit2 size={14} />
-                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Edit</span>
-                  </button>
-                  <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-white border border-gray-100 hover:bg-pink hover:text-white transition-all group/btn shadow-sm" title="View Public Listing">
-                    <Eye size={14} />
-                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">View</span>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[
+                    { icon: Clock, label: 'Appts', color: 'hover:bg-blue-500', action: () => setSelectedApptBiz(shop) },
+                    { icon: Zap, label: 'Serv', color: 'hover:bg-purple-500', action: () => setSelectedServiceBiz(shop) },
+                    { icon: Edit2, label: 'Edit', color: 'hover:bg-amber-500', action: () => setSelectedEditBiz(shop) },
+                  ].map(({ icon: Icon, label, color, action }) => (
+                    <button key={label} onClick={action}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl bg-white border border-gray-200 ${color} hover:text-white transition-all`}>
+                      <Icon size={13} />
+                      <span className="text-[8px] font-black uppercase">{label}</span>
+                    </button>
+                  ))}
+                  <a href={`/business/${shop.slug}`} target="_blank" rel="noreferrer"
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white border border-gray-200 hover:bg-pink hover:text-white transition-all">
+                    <Eye size={13} />
+                    <span className="text-[8px] font-black uppercase">View</span>
                   </a>
-                  <button 
-                    disabled={deleteBusinessMutation.isPending}
-                    onClick={() => { if(confirm(`Destroy shop record "${shop.name_en}"?`)) deleteBusinessMutation.mutate(shop.id) }} 
-                    className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all group/btn shadow-sm" title="Purge Record Permanently">
-                    {deleteBusinessMutation.isPending && deleteBusinessMutation.variables === shop.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
-                    <span className="text-[6px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Purge</span>
+                  <button disabled={deleteBusinessMutation.isPending}
+                    onClick={() => { if(confirm(`Delete "${shop.name_en}"?`)) deleteBusinessMutation.mutate(shop.id) }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all">
+                    {deleteBusinessMutation.isPending && deleteBusinessMutation.variables === shop.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={13} />}
+                    <span className="text-[8px] font-black uppercase">Del</span>
                   </button>
                 </div>
               </div>
@@ -1302,15 +1267,11 @@ function VendorControlTable() {
           </div>
         </div>
       )) : (
-        <div className="py-32 text-center bg-white rounded-[4rem] border border-dashed border-gray-200 shadow-inner">
-           <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8 text-gray-200">
-              <Search size={48} />
-           </div>
-           <h3 className="font-display text-3xl text-ink mb-2">No Matches Found</h3>
-           <p className="text-gray-400 font-semibold tracking-tight text-lg">Try adjusting your search filters or terminology.</p>
-           {search && (
-              <button onClick={() => setSearch('')} className="mt-8 text-pink font-bold border-b border-pink/30 hover:border-pink transition-all">Clear active search query</button>
-           )}
+        <div className="py-24 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300"><Search size={40} /></div>
+          <h3 className="font-display text-2xl text-ink mb-2">No Matches Found</h3>
+          <p className="text-gray-400 font-semibold">Try adjusting your search filters.</p>
+          {search && <button onClick={() => setSearch('')} className="mt-6 text-pink font-bold border-b border-pink/30 hover:border-pink transition-all text-sm">Clear search</button>}
         </div>
       )}
 
@@ -1321,23 +1282,20 @@ function VendorControlTable() {
   )
 }
 
+// ── Shared input class ─────────────────────────────────────────
+const inputCls = "w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 transition-all text-ink placeholder:text-gray-300"
+const selectCls = "w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-pink focus:ring-2 focus:ring-pink/10 transition-all text-ink"
+
 function AdminEditShopModal({ business, onClose }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState({
-    name_en: business.name_en || '',
-    name_ar: business.name_ar || '',
-    description: business.description || '',
-    short_description: business.short_description || '',
-    category_id: business.category?.id || '',
-    governorate_id: business.governorate?.id || '',
-    phone: business.phone || '',
-    whatsapp: business.whatsapp || '',
-    email: business.email || '',
-    website: business.website || '',
-    address: business.address || '',
-    logo_url: business.logo_url || '',
-    cover_image_url: business.cover_image_url || '',
-    gallery_urls: business.gallery_urls || [],
+    name_en: business.name_en || '', name_ar: business.name_ar || '',
+    description: business.description || '', short_description: business.short_description || '',
+    category_id: business.category?.id || '', governorate_id: business.governorate?.id || '',
+    phone: business.phone || '', whatsapp: business.whatsapp || '',
+    email: business.email || '', website: business.website || '',
+    address: business.address || '', logo_url: business.logo_url || '',
+    cover_image_url: business.cover_image_url || '', gallery_urls: business.gallery_urls || [],
     business_hours: business.business_hours || {
       monday: { open: '09:00', close: '18:00', closed: false },
       tuesday: { open: '09:00', close: '18:00', closed: false },
@@ -1354,11 +1312,7 @@ function AdminEditShopModal({ business, onClose }) {
 
   const mutation = useMutation({
     mutationFn: (data) => businessApi.update(business.id, data),
-    onSuccess: () => {
-      toast.success('Shop record synchronized')
-      queryClient.invalidateQueries(['admin-vendor-control'])
-      onClose()
-    },
+    onSuccess: () => { toast.success('Shop updated'); queryClient.invalidateQueries(['admin-vendor-control']); onClose() },
     onError: (e) => toast.error(getErrorMessage(e))
   })
 
@@ -1380,136 +1334,111 @@ function AdminEditShopModal({ business, onClose }) {
     mutation.mutate(payload)
   }
 
-  const getImageUrl = (url) => {
-    if (!url) return '';
-    return url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url;
-  }
+  const getImageUrl = (url) => url ? (url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url) : ''
 
   return (
-    <div className="fixed inset-0 z-[2100] flex items-center justify-center p-6 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[3rem] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-white/20">
-        <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[4px] bg-amber-500" />
-          <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shadow-sm border border-amber-100/50">
-                <Edit2 size={24} />
-             </div>
-             <div>
-                <h3 className="font-display text-3xl text-ink">Administrative Override</h3>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Editing <span className="text-ink">{business.name_en}</span></p>
-             </div>
-          </div>
+    <div className="fixed inset-0 z-[2100] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+        <div className="p-5 md:p-7 border-b border-gray-200 flex justify-between items-center bg-gray-50 relative">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-amber-500" />
           <div className="flex items-center gap-3">
-             <button onClick={handleSubmit} disabled={mutation.isPending} className="brand-btn px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-pink/20">
-                {mutation.isPending ? <Spinner className="w-4 h-4" /> : <Save size={18} />}
-                Sync Changes
-             </button>
-             <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white hover:bg-gray-100 text-gray-400 transition-all border border-gray-100">
-                <X size={24} />
-             </button>
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 border border-amber-100">
+              <Edit2 size={18} />
+            </div>
+            <div>
+              <h3 className="font-display text-xl md:text-2xl text-ink">Edit Shop</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{business.name_en}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSubmit} disabled={mutation.isPending} className="brand-btn px-4 md:px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm">
+              {mutation.isPending ? <Spinner className="w-4 h-4" /> : <Save size={16} />}
+              <span className="hidden sm:inline">Save</span>
+            </button>
+            <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-gray-100 text-gray-400 border border-gray-200 transition-all">
+              <X size={20} />
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar space-y-8">
-           <div className="grid lg:grid-cols-2 gap-8">
-              <div className="space-y-6 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-                 <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] flex items-center gap-2">
-                    <Building2 size={14} /> Core Metadata
-                 </h4>
-                 
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Name (EN)</label>
-                       <input value={form.name_en} onChange={e => setForm({...form, name_en: e.target.value})} className="w-full bg-white rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-200 shadow-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Name (AR)</label>
-                       <input value={form.name_ar} onChange={e => setForm({...form, name_ar: e.target.value})} className="w-full bg-white rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-200 shadow-sm text-right" dir="rtl" />
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Category</label>
-                       <select value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})} className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm">
-                          {categories?.map(c => <option key={c.id} value={c.id}>{c.name_en}</option>)}
-                       </select>
-                    </div>
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Governorate</label>
-                       <select value={form.governorate_id} onChange={e => setForm({...form, governorate_id: e.target.value})} className="w-full bg-white rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm">
-                          {governorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
-                       </select>
-                    </div>
-                 </div>
-
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Short Description</label>
-                    <textarea value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})} rows={2} className="w-full bg-white rounded-xl px-4 py-3 text-sm font-medium outline-none shadow-sm resize-none" />
-                 </div>
+        <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="space-y-4 bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-200">
+              <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><Building2 size={13} /> Core Info</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (EN)</label>
+                  <input value={form.name_en} onChange={e => setForm({...form, name_en: e.target.value})} className={inputCls} /></div>
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (AR)</label>
+                  <input value={form.name_ar} onChange={e => setForm({...form, name_ar: e.target.value})} className={inputCls + " text-right"} dir="rtl" /></div>
               </div>
-
-              <div className="space-y-6 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-                 <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] flex items-center gap-2">
-                    <ImageIcon size={14} /> Media Assets
-                 </h4>
-
-                 <div className="flex gap-4">
-                    <div className="group relative w-24 h-24 bg-white rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm">
-                       {form.logo_url ? <img src={getImageUrl(form.logo_url)} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
-                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                          <Edit2 size={14} className="text-white" />
-                       </div>
-                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                    <div className="group relative flex-1 h-24 bg-white rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm">
-                       {form.cover_image_url ? <img src={getImageUrl(form.cover_image_url)} className="w-full h-full object-cover" /> : <Upload size={20} className="text-gray-300" />}
-                       <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                          <Edit2 size={14} className="text-white" />
-                       </div>
-                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'cover')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-4 gap-3">
-                    {form.gallery_urls.map((url, i) => (
-                       <div key={i} className="relative aspect-square bg-white rounded-xl overflow-hidden border border-gray-100 group shadow-inner">
-                          <img src={getImageUrl(url)} className="w-full h-full object-cover" />
-                          <button onClick={() => setForm({...form, gallery_urls: form.gallery_urls.filter((_, idx) => idx !== i)})} className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-lg text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all shadow-md"><X size={12} /></button>
-                       </div>
-                    ))}
-                    <div className="relative aspect-square bg-white rounded-xl border border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-amber-400 transition-all group">
-                       <Plus size={20} className="text-gray-300 group-hover:text-amber-400" />
-                       <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'gallery')} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                 </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Category</label>
+                  <select value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})} className={selectCls}>
+                    {categories?.map(c => <option key={c.id} value={c.id}>{c.name_en}</option>)}
+                  </select></div>
+                <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Governorate</label>
+                  <select value={form.governorate_id} onChange={e => setForm({...form, governorate_id: e.target.value})} className={selectCls}>
+                    {governorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
+                  </select></div>
               </div>
-           </div>
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Short Description</label>
+                <textarea value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})} rows={2} className={inputCls + " resize-none"} /></div>
+            </div>
 
-           <div className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-              <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] flex items-center gap-2 mb-6">
-                 <Clock size={14} /> Schedule Configuration
-              </h4>
-              <div className="grid md:grid-cols-2 gap-4">
-                 {Object.entries(form.business_hours).map(([day, h]) => (
-                    <div key={day} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm transition-hover">
-                       <span className="text-[11px] font-black uppercase text-ink/60 w-24">{day}</span>
-                       <div className="flex items-center gap-2">
-                          {!h.closed ? (
-                             <>
-                                <input type="time" value={h.open} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, open: e.target.value}}})} className="text-[10px] font-bold border-none bg-gray-50 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-amber-200" />
-                                <span className="text-gray-300 text-xs">→</span>
-                                <input type="time" value={h.close} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, close: e.target.value}}})} className="text-[10px] font-bold border-none bg-gray-50 rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-amber-200" />
-                             </>
-                          ) : <span className="text-[10px] font-black text-red-400/60 tracking-tighter uppercase mr-4">Shop is Closed</span>}
-                          <button onClick={() => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, closed: !h.closed}}})} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${h.closed ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-                             {h.closed ? 'Open' : 'Close'}
-                          </button>
-                       </div>
-                    </div>
-                 ))}
+            <div className="space-y-4 bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-200">
+              <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><ImageIcon size={13} /> Media Assets</h4>
+              <div className="flex gap-3">
+                <div className="group relative w-20 h-20 bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-amber-400 transition-colors">
+                  {form.logo_url ? <img src={getImageUrl(form.logo_url)} className="w-full h-full object-cover" /> : <Upload size={18} className="text-gray-300" />}
+                  <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none"><Edit2 size={12} className="text-white" /></div>
+                  <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
+                <div className="group relative flex-1 h-20 bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-amber-400 transition-colors">
+                  {form.cover_image_url ? <img src={getImageUrl(form.cover_image_url)} className="w-full h-full object-cover" /> : <Upload size={18} className="text-gray-300" />}
+                  <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none"><Edit2 size={12} className="text-white" /></div>
+                  <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'cover')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
               </div>
-           </div>
+              <div className="grid grid-cols-5 gap-2">
+                {form.gallery_urls.map((url, i) => (
+                  <div key={i} className="relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 group">
+                    <img src={getImageUrl(url)} className="w-full h-full object-cover" />
+                    <button onClick={() => setForm({...form, gallery_urls: form.gallery_urls.filter((_,idx) => idx !== i)})} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><X size={10} /></button>
+                  </div>
+                ))}
+                <div className="relative aspect-square bg-white rounded-lg border border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-amber-400 transition-colors">
+                  <Plus size={16} className="text-gray-300" />
+                  <input type="file" accept="image/*" onChange={e => handleFileUpload(e.target.files[0], 'gallery')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-200">
+            <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2 mb-4"><Clock size={13} /> Schedule</h4>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {Object.entries(form.business_hours).map(([day, h]) => (
+                <div key={day} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
+                  <span className="text-[11px] font-black uppercase text-gray-500 w-20 capitalize">{day}</span>
+                  <div className="flex items-center gap-2">
+                    {!h.closed ? (
+                      <>
+                        <input type="time" value={h.open} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, open: e.target.value}}})}
+                          className="text-[10px] font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-pink focus:ring-1 focus:ring-pink/10" />
+                        <span className="text-gray-300 text-xs">→</span>
+                        <input type="time" value={h.close} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, close: e.target.value}}})}
+                          className="text-[10px] font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-pink focus:ring-1 focus:ring-pink/10" />
+                      </>
+                    ) : <span className="text-[10px] font-black text-red-400/60 uppercase mr-2">Closed</span>}
+                    <button onClick={() => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, closed: !h.closed}}})}
+                      className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${h.closed ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-500 border border-red-100'}`}>
+                      {h.closed ? 'Open' : 'Close'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1523,83 +1452,63 @@ function AdminAppointmentModal({ business, onClose }) {
   })
 
   const updateStatus = async (id, status) => {
-    try {
-      await adminApi.updateShopBookingStatus(id, status)
-      toast.success(`Booking ${status}`)
-      refetch()
-    } catch (e) {
-      toast.error(getErrorMessage(e))
-    }
+    try { await adminApi.updateShopBookingStatus(id, status); toast.success(`Booking ${status}`); refetch() }
+    catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-white/20">
-        <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[4px] bg-blue-500" />
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-               <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center shadow-sm">
-                  <Clock size={16} />
-               </div>
-               <h3 className="font-display text-3xl text-ink">Appointment Manager</h3>
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+        <div className="p-5 md:p-8 border-b border-gray-200 flex justify-between items-center bg-gray-50 relative">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-blue-500" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center border border-blue-100"><Clock size={16} /></div>
+            <div>
+              <h3 className="font-display text-xl md:text-2xl text-ink">Appointments</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{business.name_en}</p>
             </div>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">Monitoring <span className="text-ink">{business.name_en}</span></p>
           </div>
-          <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white hover:bg-red-500 hover:text-white transition-all shadow-md border border-gray-100 group">
-            <X size={24} className="group-hover:rotate-90 transition-transform" />
-          </button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200"><X size={20} /></button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 md:p-8">
           {isLoading ? <Spinner /> : !bookings?.length ? (
-            <div className="text-center py-24 grayscale opacity-40">
-               <div className="w-24 h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6">
-                  <Clock size={50} />
-               </div>
-               <p className="font-display text-2xl text-ink/40">No appointments scheduled</p>
-               <p className="text-sm font-bold text-gray-400 mt-2">Historical and future bookings will appear here.</p>
+            <div className="text-center py-20 opacity-40">
+              <Clock size={40} className="mx-auto mb-3 text-gray-300" />
+              <p className="font-display text-xl text-ink/40">No appointments scheduled</p>
             </div>
           ) : (
-            <div className="space-y-6">
-               {bookings.map(booking => (
-                 <div key={booking.id} className="flex items-center justify-between p-7 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100/50 transition-all group">
-                    <div className="flex items-center gap-5">
-                       <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                         {booking.name[0].toUpperCase()}
-                       </div>
-                       <div>
-                         <p className="font-display text-xl text-ink leading-none mb-1">{booking.name}</p>
-                         <div className="flex items-center gap-3">
-                            <p className="text-xs text-gray-400 font-bold">{booking.phone}</p>
-                            <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                            <p className="text-xs text-gray-300 font-semibold">{booking.email}</p>
-                         </div>
-                       </div>
+            <div className="space-y-3">
+              {bookings.map(booking => (
+                <div key={booking.id} className="bg-white rounded-2xl border border-gray-200 p-4 md:p-5 hover:border-blue-200 transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0">
+                        {booking.name[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-ink">{booking.name}</p>
+                        <p className="text-xs text-gray-400">{booking.phone}</p>
+                      </div>
                     </div>
-                    <div className="px-8 border-x border-gray-50 text-center">
-                       <p className="text-base font-black text-ink mb-1">{booking.service || 'Standard Service'}</p>
-                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-lg border border-gray-100">
-                          <p className="text-[11px] text-ink font-bold">{booking.date}</p>
-                          <span className="text-gray-300">|</span>
-                          <p className="text-[11px] text-blue-500 font-black">{booking.time}</p>
-                       </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-200">
+                        <p className="text-xs font-bold text-ink">{booking.service || 'Standard'}</p>
+                        <span className="text-gray-300">|</span>
+                        <p className="text-xs font-bold text-ink">{booking.date}</p>
+                        <span className="text-gray-300">|</span>
+                        <p className="text-xs font-bold text-blue-500">{booking.time}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase ${booking.status === 'confirmed' ? 'bg-green-500 text-white' : booking.status === 'cancelled' ? 'bg-red-500 text-white' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>{booking.status}</span>
+                      {booking.status === 'pending' && (
+                        <div className="flex gap-1.5">
+                          <button onClick={() => updateStatus(booking.id, 'confirmed')} className="w-9 h-9 bg-green-50 text-green-500 rounded-xl border border-green-100 hover:bg-green-500 hover:text-white transition-all flex items-center justify-center"><CheckCircle size={16} /></button>
+                          <button onClick={() => updateStatus(booking.id, 'cancelled')} className="w-9 h-9 bg-red-50 text-red-500 rounded-xl border border-red-100 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"><XCircle size={16} /></button>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-6">
-                       <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm ${
-                         booking.status === 'confirmed' ? 'bg-green-500 text-white' :
-                         booking.status === 'cancelled' ? 'bg-red-500 text-white' : 'bg-amber-100 text-amber-600 border border-amber-200'
-                       }`}>{booking.status}</span>
-                       
-                       {booking.status === 'pending' && (
-                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <button onClick={() => updateStatus(booking.id, 'confirmed')} className="w-10 h-10 bg-green-50 text-green-500 rounded-xl shadow-sm border border-green-100 hover:bg-green-500 hover:text-white transition-all transform hover:scale-110"><CheckCircle size={18} /></button>
-                           <button onClick={() => updateStatus(booking.id, 'cancelled')} className="w-10 h-10 bg-red-50 text-red-500 rounded-xl shadow-sm border border-red-100 hover:bg-red-500 hover:text-white transition-all transform hover:scale-110"><XCircle size={18} /></button>
-                         </div>
-                       )}
-                    </div>
-                 </div>
-               ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -1617,102 +1526,67 @@ function AdminServiceModal({ business, onClose }) {
 
   const handleAdd = async (e) => {
     e.preventDefault()
-    try {
-      await adminApi.createShopService({ ...newS, business_id: business.id })
-      setNewS({ name: '', description: '', price: '' })
-      toast.success('Service injected successfully')
-      refetch()
-    } catch (e) { toast.error(getErrorMessage(e)) }
+    try { await adminApi.createShopService({ ...newS, business_id: business.id }); setNewS({ name: '', description: '', price: '' }); toast.success('Service added'); refetch() }
+    catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Permanently delete this service signature?')) return
-    try {
-      await adminApi.deleteShopService(id)
-      toast.success('Service purged')
-      refetch()
-    } catch (e) { toast.error(getErrorMessage(e)) }
+    if (!confirm('Delete this service?')) return
+    try { await adminApi.deleteShopService(id); toast.success('Service deleted'); refetch() }
+    catch (e) { toast.error(getErrorMessage(e)) }
   }
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[3rem] w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-white/20">
-        <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[4px] bg-purple-600" />
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-               <div className="w-8 h-8 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                  <Zap size={16} />
-               </div>
-               <h3 className="font-display text-3xl text-ink">Service Registry</h3>
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+        <div className="p-5 md:p-8 border-b border-gray-200 flex justify-between items-center bg-gray-50 relative">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-purple-600" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center border border-purple-100"><Zap size={16} /></div>
+            <div>
+              <h3 className="font-display text-xl md:text-2xl text-ink">Services</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{business.name_en}</p>
             </div>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">Control Over <span className="text-ink">{business.name_en}</span></p>
           </div>
-          <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white hover:bg-purple-600 hover:text-white transition-all shadow-md border border-gray-100 group">
-            <X size={24} className="group-hover:rotate-90 transition-transform" />
-          </button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-purple-50 hover:text-purple-600 transition-all border border-gray-200"><X size={20} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
-           <form onSubmit={handleAdd} className="mb-12 p-8 bg-purple-50/30 border border-purple-100/30 rounded-[2.5rem] space-y-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                 <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] font-display">Manual Entry Interface</p>
-                 <span className="text-[9px] text-gray-300 font-bold uppercase">Authorized Access</span>
-              </div>
-              <div className="grid grid-cols-2 gap-5">
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Title</label>
-                    <input placeholder="Ex: Master Haircut" value={newS.name} onChange={e => setNewS({...newS, name: e.target.value})} className="w-full border-none bg-white rounded-2xl px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-purple-200 shadow-sm font-semibold" required />
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Price Tier</label>
-                    <input placeholder="Ex: 15 OMR" value={newS.price} onChange={e => setNewS({...newS, price: e.target.value})} className="w-full border-none bg-white rounded-2xl px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-purple-200 shadow-sm font-semibold" />
-                 </div>
-              </div>
-              <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Capabilities Description</label>
-                 <input placeholder="What does this service involve?" value={newS.description} onChange={e => setNewS({...newS, description: e.target.value})} className="w-full border-none bg-white rounded-2xl px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-purple-200 shadow-sm font-semibold" />
-              </div>
-              <button type="submit" className="w-full py-4 bg-ink text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-purple-600 hover:shadow-xl transition-all flex items-center justify-center gap-3">
-                 Inject Service Definition <Zap size={14} className="animate-pulse" />
-              </button>
-           </form>
+        <div className="flex-1 overflow-y-auto p-5 md:p-8">
+          <form onSubmit={handleAdd} className="mb-8 p-5 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-4">
+            <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Add New Service</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Title</label>
+                <input placeholder="Ex: Haircut" value={newS.name} onChange={e => setNewS({...newS, name: e.target.value})} className={inputCls} required /></div>
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Price</label>
+                <input placeholder="Ex: 15 OMR" value={newS.price} onChange={e => setNewS({...newS, price: e.target.value})} className={inputCls} /></div>
+            </div>
+            <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Description</label>
+              <input placeholder="What does this service involve?" value={newS.description} onChange={e => setNewS({...newS, description: e.target.value})} className={inputCls} /></div>
+            <button type="submit" className="w-full py-3 bg-ink text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-purple-600 transition-all flex items-center justify-center gap-2">
+              Add Service <Zap size={13} />
+            </button>
+          </form>
 
-           <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Active Ecosystem Definitions</h4>
-                 <div className="h-[1px] flex-1 bg-gray-50" />
-              </div>
-              {isLoading ? <Spinner /> : services?.length === 0 ? (
-                 <div className="text-center py-12 opacity-30">
-                    <Zap size={32} className="mx-auto mb-2" />
-                    <p className="text-xs font-bold uppercase tracking-widest">No active definitions found</p>
-                 </div>
-              ) : (
-                <div className="grid gap-4">
-                   {services?.map(s => (
-                    <div key={s.id} className="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm group hover:border-purple-200/50 transition-all">
-                       <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shadow-inner group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                             <Zap size={16} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-ink text-base mb-0.5">{s.name}</h4>
-                            <div className="flex items-center gap-3">
-                               <p className="text-xs text-pink font-bold">{s.price || 'P.O.A'}</p>
-                               <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                               <p className="text-[10px] text-gray-400 font-semibold italic">{s.description || 'No descriptive data'}</p>
-                            </div>
-                          </div>
-                       </div>
-                       <button onClick={() => handleDelete(s.id)} className="w-10 h-10 rounded-xl bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <Trash2 size={18} />
-                       </button>
+          <div className="space-y-3">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Active Services</p>
+            {isLoading ? <Spinner /> : services?.length === 0 ? (
+              <div className="text-center py-10 opacity-30"><Zap size={28} className="mx-auto mb-2" /><p className="text-xs font-bold uppercase">No services yet</p></div>
+            ) : services?.map(s => (
+              <div key={s.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-purple-200 transition-all group">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center border border-purple-100 flex-shrink-0"><Zap size={14} /></div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-ink text-sm truncate">{s.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-pink font-bold">{s.price || 'P.O.A'}</p>
+                      {s.description && <><span className="w-1 h-1 bg-gray-200 rounded-full" /><p className="text-[10px] text-gray-400 italic truncate">{s.description}</p></>}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
-           </div>
+                <button onClick={() => handleDelete(s.id)} className="w-9 h-9 rounded-xl bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
