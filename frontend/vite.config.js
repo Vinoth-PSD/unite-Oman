@@ -8,6 +8,8 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') }
   },
   server: {
+    host: true,
+    allowedHosts: ['uniteoman.com'],
     proxy: {
       '/api': { target: 'http://72.61.229.172:8090', changeOrigin: true },
       '/uploads': { target: 'http://72.61.229.172:8090', changeOrigin: true }
