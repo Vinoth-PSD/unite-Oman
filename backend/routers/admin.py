@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,18 +31,29 @@ async def admin_login(data: AdminLogin, db: AsyncSession = Depends(get_db)):
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_stats(db: AsyncSession = Depends(get_db), _: dict = Depends(require_admin)):
-    total     = (await db.execute(select(func.count(Business.id)))).scalar()
-    active    = (await db.execute(select(func.count(Business.id)).where(Business.status == BusinessStatus.active))).scalar()
-    pending   = (await db.execute(select(func.count(Business.id)).where(Business.status == BusinessStatus.pending))).scalar()
-    featured  = (await db.execute(select(func.count(Business.id)).where(Business.is_featured == True))).scalar()
-    reviews   = (await db.execute(select(func.count(Review.id)))).scalar()
-    cats      = (await db.execute(select(func.count(Category.id)))).scalar()
-    govs      = (await db.execute(select(func.count(Governorate.id)))).scalar()
+    # All business counts in a single query using conditional aggregation
+    biz_q = select(
+        func.count(Business.id).label("total"),
+        func.count(Business.id).filter(Business.status == BusinessStatus.active).label("active"),
+        func.count(Business.id).filter(Business.status == BusinessStatus.pending).label("pending"),
+        func.count(Business.id).filter(Business.is_featured == True).label("featured"),
+    )
+    # Remaining counts run in parallel
+    biz_res, reviews_res, cats_res, govs_res = await asyncio.gather(
+        db.execute(biz_q),
+        db.execute(select(func.count(Review.id))),
+        db.execute(select(func.count(Category.id))),
+        db.execute(select(func.count(Governorate.id))),
+    )
+    row = biz_res.one()
     return DashboardStats(
-        total_businesses=total, active_businesses=active,
-        pending_businesses=pending, total_reviews=reviews,
-        total_categories=cats, total_governorates=govs,
-        featured_businesses=featured
+        total_businesses=row.total,
+        active_businesses=row.active,
+        pending_businesses=row.pending,
+        featured_businesses=row.featured,
+        total_reviews=reviews_res.scalar(),
+        total_categories=cats_res.scalar(),
+        total_governorates=govs_res.scalar(),
     )
 @router.get("/vendors", response_model=List[dict])
 async def list_vendors(db: AsyncSession = Depends(get_db), _: dict = Depends(require_admin)):
@@ -79,36 +91,36 @@ async def toggle_vendor_status(
 
 @router.get("/vendors/{vendor_id}/stats", response_model=VendorStats)
 async def get_vendor_stats(
-    vendor_id: UUID, 
-    db: AsyncSession = Depends(get_db), 
+    vendor_id: UUID,
+    db: AsyncSession = Depends(get_db),
     _: dict = Depends(require_admin)
 ):
-    # Reuse logic from businesses.py but for any vendor
-    q = select(Business).where(Business.owner_id == vendor_id)
-    result = await db.execute(q)
-    businesses = result.scalars().all()
-    
-    if not businesses:
-        return VendorStats(total_reviews=0, avg_rating=0.0, total_services=0, total_views=0)
-    
-    total_reviews = sum(b.rating_count for b in businesses if b.rating_count is not None)
-    total_views = sum(b.view_count for b in businesses if b.view_count is not None)
-    
-    if total_reviews > 0:
-        total_rating_sum = sum(float(b.rating_avg or 0) * (b.rating_count or 0) for b in businesses)
-        avg_rating = total_rating_sum / total_reviews
-    else:
-        avg_rating = 0.0
-        
-    business_ids = [b.id for b in businesses]
-    service_count_q = select(func.count(Service.id)).where(Service.business_id.in_(business_ids))
-    total_services = (await db.execute(service_count_q)).scalar() or 0
-    
+    agg_q = select(
+        func.coalesce(func.sum(Business.rating_count), 0).label("total_reviews"),
+        func.coalesce(func.sum(Business.view_count), 0).label("total_views"),
+        func.coalesce(
+            func.sum(Business.rating_avg * Business.rating_count) /
+            func.nullif(func.sum(Business.rating_count), 0),
+            0.0
+        ).label("avg_rating"),
+    ).where(Business.owner_id == vendor_id)
+
+    svc_q = (
+        select(func.count(Service.id))
+        .join(Business, Service.business_id == Business.id)
+        .where(Business.owner_id == vendor_id)
+    )
+
+    agg_res, svc_res = await asyncio.gather(
+        db.execute(agg_q),
+        db.execute(svc_q),
+    )
+    row = agg_res.one()
     return VendorStats(
-        total_reviews=total_reviews,
-        avg_rating=round(avg_rating, 2),
-        total_services=total_services,
-        total_views=total_views
+        total_reviews=int(row.total_reviews),
+        avg_rating=round(float(row.avg_rating or 0), 2),
+        total_services=svc_res.scalar() or 0,
+        total_views=int(row.total_views),
     )
 
 @router.get("/vendors/{vendor_id}/businesses", response_model=List[BusinessCard])

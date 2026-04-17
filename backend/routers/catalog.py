@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from typing import List, Optional
 from core.database import get_db
+from core.cache import ttl_cache
 from models.models import Category, Governorate
 from models.schemas import CategoryOut, GovernorateOut
 
@@ -11,16 +12,22 @@ router = APIRouter(tags=["catalog"])
 # ── Categories ────────────────────────────────────────────────
 @router.get("/api/categories", response_model=List[CategoryOut])
 async def list_categories(
-    db: AsyncSession = Depends(get_db), 
+    db: AsyncSession = Depends(get_db),
     is_featured: bool = False,
     parent_id: Optional[int] = None,
     parent_slug: Optional[str] = None
 ):
+    # Cache key encodes all filter params
+    cache_key = f"categories:{is_featured}:{parent_id}:{parent_slug}"
+    cached = ttl_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     q = select(Category).order_by(Category.sort_order)
-    
+
     if is_featured:
         q = q.where(Category.is_featured == True)
-        
+
     if parent_id is not None:
         if parent_id == 0:
             q = q.where(Category.parent_id == None)
@@ -32,38 +39,33 @@ async def list_categories(
         if p_id:
             q = q.where(Category.parent_id == p_id)
         else:
-            q = q.where(Category.id == -1) 
-            
-    # Get categories
+            q = q.where(Category.id == -1)
+
     result = await db.execute(q)
     cats = result.scalars().all()
 
     if not cats:
         return []
 
-    # Get child parent IDs and business counts in parallel (sequential but optimized)
-    # Using a single query to get all active counts
+    # Active business counts per category (single SQL query)
     counts_res = await db.execute(text(
         "SELECT category_id, COUNT(*) FROM businesses WHERE status = 'active' GROUP BY category_id"
     ))
     live_counts = {row[0]: row[1] for row in counts_res.fetchall()}
 
-    # Get all parent relationships to handle aggregate counts
+    # Parent map for aggregate counts (single SQL query)
     all_cats_res = await db.execute(select(Category.id, Category.parent_id))
     parent_map = {row[0]: row[1] for row in all_cats_res.fetchall()}
-    
-    # Identify parents that have children
-    child_parent_ids = {p_id for p_id in parent_map.values() if p_id is not None}
 
-    # Compute aggregate counts (including children)
+    child_parent_ids = {pid for pid in parent_map.values() if pid is not None}
+
+    # Roll child counts up to parents
     final_counts = {}
     for cat_id, count in live_counts.items():
-        # Add to the category itself
         final_counts[cat_id] = final_counts.get(cat_id, 0) + count
-        # If it has a parent, add to parent too
-        parent_id = parent_map.get(cat_id)
-        if parent_id:
-            final_counts[parent_id] = final_counts.get(parent_id, 0) + count
+        pid = parent_map.get(cat_id)
+        if pid:
+            final_counts[pid] = final_counts.get(pid, 0) + count
 
     out = []
     for cat in cats:
@@ -71,6 +73,9 @@ async def list_categories(
         d.has_children = cat.id in child_parent_ids
         d.business_count = final_counts.get(cat.id, 0)
         out.append(d)
+
+    # Cache for 5 minutes — categories change rarely
+    ttl_cache.set(cache_key, out, ttl=300)
     return out
 
 @router.get("/api/categories/{slug}", response_model=CategoryOut)
@@ -84,13 +89,16 @@ async def get_category(slug: str, db: AsyncSession = Depends(get_db)):
 # ── Governorates ──────────────────────────────────────────────
 @router.get("/api/governorates", response_model=List[GovernorateOut])
 async def list_governorates(db: AsyncSession = Depends(get_db)):
+    cached = ttl_cache.get("governorates")
+    if cached is not None:
+        return cached
+
     result = await db.execute(select(Governorate).order_by(Governorate.id))
     govs = result.scalars().all()
 
     if not govs:
         return []
 
-    # Compute live counts
     counts_res = await db.execute(text(
         "SELECT governorate_id, COUNT(*) FROM businesses WHERE status = 'active' GROUP BY governorate_id"
     ))
@@ -101,6 +109,9 @@ async def list_governorates(db: AsyncSession = Depends(get_db)):
         d = GovernorateOut.model_validate(g)
         d.business_count = live_counts.get(g.id, 0)
         out.append(d)
+
+    # Cache for 10 minutes — governorates almost never change
+    ttl_cache.set("governorates", out, ttl=600)
     return out
 
 @router.get("/api/governorates/{slug}", response_model=GovernorateOut)

@@ -34,24 +34,13 @@ function AiPickModal({ businesses, onClose }) {
     if (!businesses?.length) { toast.error('No businesses to analyse'); return }
     setLoading(true)
     try {
-      const list = businesses.slice(0, 5).map(b =>
-        `- ${b.name_en}: rating ${b.rating_avg || 'N/A'}, ${b.rating_count || 0} reviews, plan: ${b.plan}, verified: ${b.is_verified}`
-      ).join('\n')
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai-search/pick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are a helpful Oman business directory assistant. Based on these businesses, recommend the single best pick and explain why in 2–3 sentences. Be direct and helpful.\n\nBusinesses:\n${list}\n\nGive your top pick and a brief reason. Format: "**[Business Name]** — [reason]"`
-          }]
-        })
+        body: JSON.stringify({ businesses: businesses.slice(0, 5) })
       })
       const data = await res.json()
-      setResult(data.content?.find(b => b.type === 'text')?.text || 'Unable to generate recommendation.')
+      setResult(data.recommendation || 'Unable to generate recommendation.')
     } catch {
       setResult('Unable to generate AI recommendation at this time.')
     } finally {
@@ -59,7 +48,7 @@ function AiPickModal({ businesses, onClose }) {
     }
   }
 
-  useState(() => { generate() }, [])
+  useEffect(() => { generate() }, [])
 
   return (
     <div className="modal-bg open" onClick={onClose}>
@@ -104,12 +93,21 @@ export default function BusinessListPage() {
     setSearchParams(p)
   }
 
-  const { data: cats = [] }  = useQuery({ queryKey: ['categories'], queryFn: () => categoryApi.list() })
-  const { data: govs = [] }  = useQuery({ queryKey: ['governorates'], queryFn: governorateApi.list })
+  const { data: cats = [] }  = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryApi.list(),
+    staleTime: 5 * 60 * 1000,   // categories don't change — cache 5 min
+  })
+  const { data: govs = [] }  = useQuery({
+    queryKey: ['governorates'],
+    queryFn: governorateApi.list,
+    staleTime: 10 * 60 * 1000,  // governorates never change — cache 10 min
+  })
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['businesses', q, category, governorate, sort, page],
     queryFn: () => businessApi.list({ q, category, governorate, sort, page, per_page: 12 }),
-    keepPreviousData: true
+    placeholderData: (prev) => prev,  // React Query v5: keep previous page while fetching next
+    staleTime: 30_000,                // 30s — avoids refetch on quick back-navigation
   })
 
   const businesses = data?.items || []

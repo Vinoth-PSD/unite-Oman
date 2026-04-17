@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries } from '@tanstack/react-query'
 import { businessApi } from '@/lib/api'
 import { useNavigate } from 'react-router-dom'
 import { 
@@ -18,38 +18,27 @@ import ServiceShelf from '@/components/home/ServiceShelf'
 import { CategoryGrid, WhySection, Testimonials, CTABand } from '@/components/home/HomeInfoSections'
 import DealsSection from '@/components/home/DealsSection'
 
+// Cache shelves for 5 minutes — home page content rarely changes
+const HOME_STALE_TIME = 5 * 60 * 1000
+
+const HOME_SHELF_QUERIES = [
+  { queryKey: ['home-featured'],   queryFn: () => businessApi.list({ sort: 'featured', per_page: 8 }) },
+  { queryKey: ['home-new'],        queryFn: () => businessApi.list({ sort: 'newest', per_page: 8 }) },
+  { queryKey: ['home-tech'],       queryFn: () => businessApi.list({ category: 'it-software', per_page: 8 }) },
+  { queryKey: ['home-essentials'], queryFn: () => businessApi.list({ category: 'retail', per_page: 8 }) },
+  { queryKey: ['home-grooming'],   queryFn: () => businessApi.list({ category: 'grooming-for-men', per_page: 8 }) },
+  { queryKey: ['home-beauty'],     queryFn: () => businessApi.list({ category: 'spa', per_page: 8 }) },
+]
+
 export default function HomePage() {
   const navigate = useNavigate()
-  // Fetch Live Data
-  const { data: featuredData } = useQuery({
-    queryKey: ['home-featured'],
-    queryFn: () => businessApi.list({ sort: 'featured', per_page: 8 })
-  })
-  
-  const { data: newData } = useQuery({
-    queryKey: ['home-new'],
-    queryFn: () => businessApi.list({ sort: 'newest', per_page: 8 })
-  })
 
-  const { data: techData } = useQuery({
-    queryKey: ['home-tech'],
-    queryFn: () => businessApi.list({ category: 'it-software', per_page: 8 })
+  // All shelf queries fire in parallel, cached for 5 minutes
+  const results = useQueries({
+    queries: HOME_SHELF_QUERIES.map(q => ({ ...q, staleTime: HOME_STALE_TIME }))
   })
-
-  const { data: homeEssentialsData } = useQuery({
-    queryKey: ['home-essentials'],
-    queryFn: () => businessApi.list({ category: 'retail', per_page: 8 })
-  })
-
-  const { data: groomingData } = useQuery({
-    queryKey: ['home-grooming'],
-    queryFn: () => businessApi.list({ category: 'grooming-for-men', per_page: 8 })
-  })
-  
-  const { data: beautyData } = useQuery({
-    queryKey: ['home-beauty'],
-    queryFn: () => businessApi.list({ category: 'spa', per_page: 8 })
-  })
+  const [featuredData, newData, techData, homeEssentialsData, groomingData, beautyData] =
+    results.map(r => r.data)
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     BASE_URL: str = "http://72.61.229.172:8090"
 
+    ANTHROPIC_API_KEY: str = ""
+
     # Mail Settings
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""

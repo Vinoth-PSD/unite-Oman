@@ -97,7 +97,7 @@ class Business(Base):
     view_count        = Column(Integer, default=0)
     rating_avg        = Column(DECIMAL(3, 2), default=0)
     rating_count      = Column(Integer, default=0)
-    owner_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    owner_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     
     # Documentation for verification
     trade_license_url = Column(Text) # Optional
@@ -117,7 +117,7 @@ class Business(Base):
 class Service(Base):
     __tablename__ = "services"
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
     name        = Column(String(200), nullable=False)
     description = Column(Text)
     price       = Column(String(100))
@@ -128,7 +128,7 @@ class Service(Base):
 class Review(Base):
     __tablename__ = "reviews"
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    business_id   = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"))
+    business_id   = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
     user_id       = Column(UUID(as_uuid=True))
     reviewer_name = Column(String(100))
     rating        = Column(Integer)
@@ -157,7 +157,7 @@ class BookingStatus(str, enum.Enum):
 class Booking(Base):
     __tablename__ = "bookings"
     id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
     name        = Column(String(200), nullable=False)
     email       = Column(String(200), nullable=False)
     phone       = Column(String(20), nullable=False)

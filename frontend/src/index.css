@@ -141,6 +141,12 @@ img{display:block;max-width:100%}
   40% { transform: translateY(-4px); }
 }
 
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
 .hs-rbox {
   background: var(--bg);
   border: 1.5px solid var(--line);

@@ -256,6 +256,11 @@ class SearchSuggestion(BaseModel):
     type: str  # "business", "category"
     slug: str
     icon: Optional[str] = None
+    rating: Optional[float] = None
+    category: Optional[str] = None
+    governorate: Optional[str] = None
+    is_verified: Optional[bool] = None
+    logo_url: Optional[str] = None
 
 # ── Contact Message ───────────────────────────────────────────
 class ContactMessageOut(BaseModel):
