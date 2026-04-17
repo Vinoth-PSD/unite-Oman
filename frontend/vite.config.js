@@ -11,8 +11,8 @@ export default defineConfig({
     host: true,
     allowedHosts: ['uniteoman.com'],
     proxy: {
-      '/api': { target: 'http://72.61.229.172:8090', changeOrigin: true },
-      '/uploads': { target: 'http://72.61.229.172:8090', changeOrigin: true }
+      '/api': { target: 'https://api.uniteoman.com/', changeOrigin: true },
+      '/uploads': { target: 'https://api.uniteoman.com/', changeOrigin: true }
     }
   }
 
