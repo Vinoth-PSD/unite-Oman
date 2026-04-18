@@ -119,7 +119,7 @@ export const contactApi = {
 
 // ── Bookings ─────────────────────────────────────────────────
 export const bookingApi = {
-  create: (data) => api.post('/api/bookings', data).then(r => r.data),
+  create: (data) => api.post('/api/bookings/', data).then(r => r.data),
   vendorList: () => api.get('/api/bookings/vendor/me').then(r => r.data),
   updateStatus: (id, status) => api.patch(`/api/bookings/${id}/status`, { status }).then(r => r.data),
 }
