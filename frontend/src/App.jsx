@@ -20,6 +20,8 @@ import VendorDashboardPage from '@/pages/VendorDashboardPage'
 import EditShopPage from '@/pages/EditShopPage'
 import PricingPage from '@/pages/PricingPage'
 import ContactPage from '@/pages/ContactPage'
+import CustomerLoginPage from '../../frontend/src/pages/CustomerLoginPage'
+import ProtectedCustomerRoute from '@/components/ProtectedCustomerRoute'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,11 +79,24 @@ export default function App() {
             <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
             <Route path="/businesses" element={<PublicLayout><BusinessListPage /></PublicLayout>} />
             <Route path="/business/:slug" element={<PublicLayout><BusinessProfilePage /></PublicLayout>} />
-            <Route path="/business/:slug/book" element={<PublicLayout><BookingPage /></PublicLayout>} />
+            <Route path="/business/:slug/book"
+              element={
+                <ProtectedCustomerRoute>
+                  <PublicLayout><BookingPage /></PublicLayout>
+                </ProtectedCustomerRoute>
+              }
+            />
             <Route path="/categories" element={<PublicLayout><CategoriesPage /></PublicLayout>} />
             <Route path="/governorates" element={<PublicLayout><GovernoratesPage /></PublicLayout>} />
             <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />
-            <Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} />
+            <Route path="/contact"
+              element={
+                <ProtectedCustomerRoute message="Please login to access the contact page">
+                  <PublicLayout><ContactPage /></PublicLayout>
+                </ProtectedCustomerRoute>
+              }
+            />
+            <Route path="/customer/login" element={<PublicLayout><CustomerLoginPage /></PublicLayout>} />
 
             {/* Vendor — vendor navbar */}
             <Route path="/vendor/login" element={<PublicLayout><VendorAuthPage /></PublicLayout>} />

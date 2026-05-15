@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui'
 import { Building2, Mail, Lock, User, MapPin, Tag, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+
 export default function VendorAuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [loading, setLoading] = useState(false)

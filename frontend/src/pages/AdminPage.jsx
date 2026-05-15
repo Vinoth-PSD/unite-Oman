@@ -7,7 +7,8 @@ import { getErrorMessage } from '@/lib/utils'
 import { Spinner, Pagination } from '@/components/ui'
 import { LayoutDashboard, Building2, Star, LogOut, CheckCircle, XCircle, Eye, Trash2, X, Users, FolderTree, Plus, Edit2, MessageSquare, Mail, Phone, Clock, Zap, Search, MapPin, Image as ImageIcon, Save, Upload, Globe, ShieldAlert, Download } from 'lucide-react'
 import Logo from '@/components/ui/Logo'
-import toast from 'react-hot-toast'
+import toast from 'react-hot-toast';
+import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 
 // ── Login Page ────────────────────────────────────────────────
 function AdminLoginPage() {
@@ -88,6 +89,7 @@ function BusinessTable({ defaultStatus = '' }) {
   const [statusFilter, setStatusFilter] = useState(defaultStatus)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
   const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [deleteBusiness, setDeleteBusiness] = useState(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-businesses', page, statusFilter],
@@ -131,7 +133,7 @@ function BusinessTable({ defaultStatus = '' }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {['Business','Category','Governorate','Plan','Status','Actions'].map(h => (
+                  {['Business', 'Category', 'Governorate', 'Plan', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -150,7 +152,7 @@ function BusinessTable({ defaultStatus = '' }) {
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                     <td className="px-4 py-3">
-                      <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} />
+                      <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} setDeleteBusiness={setDeleteBusiness} />
                     </td>
                   </tr>
                 ))}
@@ -184,7 +186,7 @@ function BusinessTable({ defaultStatus = '' }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                  <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} />
+                  <BusinessActions b={b} approveMutation={approveMutation} rejectMutation={rejectMutation} deleteMutation={deleteMutation} setSelectedBusiness={setSelectedBusiness} setDeleteBusiness={setDeleteBusiness} />
                 </div>
               </div>
             ))}
@@ -279,8 +281,8 @@ function BusinessTable({ defaultStatus = '' }) {
                             className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-200 hover:border-pink transition-colors cursor-pointer">
                             <img src={url.startsWith('/') ? import.meta.env.VITE_API_URL + url : url}
                               className="w-full h-full object-cover" alt={label}
-                              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
-                            <div style={{display:'none'}} className="absolute inset-0 bg-gray-100 items-center justify-center text-gray-400 text-xs font-bold">Error</div>
+                              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
+                            <div style={{ display: 'none' }} className="absolute inset-0 bg-gray-100 items-center justify-center text-gray-400 text-xs font-bold">Error</div>
                             <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/30 transition-all flex items-center justify-center">
                               <Eye size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
@@ -316,7 +318,7 @@ function BusinessTable({ defaultStatus = '' }) {
                   </>
                 ) : (
                   <button disabled={deleteMutation.isPending}
-                    onClick={() => { if(confirm('Delete this business?')) deleteMutation.mutate(selectedBusiness.id, { onSuccess: () => setSelectedBusiness(null) }) }}
+                    onClick={() => { if (confirm('Delete this business?')) deleteMutation.mutate(selectedBusiness.id, { onSuccess: () => setSelectedBusiness(null) }) }}
                     className="flex-1 min-w-[120px] bg-red-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     {deleteMutation.isPending ? <Spinner className="w-4 h-4" /> : <Trash2 size={16} />} Delete Shop
                   </button>
@@ -343,35 +345,97 @@ function BusinessTable({ defaultStatus = '' }) {
           </div>
         </div>
       )}
+      <DeleteConfirmModal
+        open={!!deleteBusiness}
+        loading={deleteMutation.isPending}
+        title="Delete Business"
+        description={`Are you sure you want to delete "${deleteBusiness?.name_en}" ?`}
+        onClose={() => setDeleteBusiness(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(deleteBusiness.id, {
+            onSuccess: () => {
+              setDeleteBusiness(null)
+            }
+          })
+        }}
+      />
     </div>
   )
 }
 
-function BusinessActions({ b, approveMutation, rejectMutation, deleteMutation, setSelectedBusiness }) {
+function BusinessActions({
+  b,
+  approveMutation,
+  rejectMutation,
+  deleteMutation,
+  setSelectedBusiness,
+  setDeleteBusiness
+}) {
   return (
     <div className="flex items-center gap-1.5">
-      <button onClick={(e) => { e.stopPropagation(); setSelectedBusiness(b) }}
-        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors" title="View Details">
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setSelectedBusiness(b)
+        }}
+        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"
+        title="View Details"
+      >
         <Eye size={14} />
       </button>
+      {/* Approve & Reject */}
       {b.status === 'pending' && (
         <>
-          <button disabled={approveMutation.isPending}
-            onClick={(e) => { e.stopPropagation(); approveMutation.mutate(b.id) }}
-            className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center transition-colors disabled:opacity-50" title="Approve">
-            {approveMutation.isPending && approveMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <CheckCircle size={14} />}
+          <button
+            disabled={approveMutation.isPending}
+            onClick={(e) => {
+              e.stopPropagation()
+              approveMutation.mutate(b.id)
+            }}
+            className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center transition-colors disabled:opacity-50"
+            title="Approve"
+          >
+            {approveMutation.isPending &&
+              approveMutation.variables === b.id ? (
+              <Spinner className="w-3 h-3" />
+            ) : (
+              <CheckCircle size={14} />
+            )}
           </button>
-          <button disabled={rejectMutation.isPending}
-            onClick={(e) => { e.stopPropagation(); rejectMutation.mutate(b.id) }}
-            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50" title="Reject">
-            {rejectMutation.isPending && rejectMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <X size={14} />}
+
+          <button
+            disabled={rejectMutation.isPending}
+            onClick={(e) => {
+              e.stopPropagation()
+              rejectMutation.mutate(b.id)
+            }}
+            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
+            title="Reject"
+          >
+            {rejectMutation.isPending &&
+              rejectMutation.variables === b.id ? (
+              <Spinner className="w-3 h-3" />
+            ) : (
+              <X size={14} />
+            )}
           </button>
         </>
       )}
-      <button disabled={deleteMutation.isPending}
-        onClick={(e) => { e.stopPropagation(); if(confirm('Delete this business?')) deleteMutation.mutate(b.id) }}
-        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50" title="Delete">
-        {deleteMutation.isPending && deleteMutation.variables === b.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
+      <button
+        disabled={deleteMutation.isPending}
+        onClick={(e) => {
+          e.stopPropagation()
+          setDeleteBusiness(b)
+        }}
+        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50"
+        title="Delete"
+      >
+        {deleteMutation.isPending &&
+          deleteMutation.variables === b.id ? (
+          <Spinner className="w-3 h-3" />
+        ) : (
+          <Trash2 size={14} />
+        )}
       </button>
     </div>
   )
@@ -381,6 +445,7 @@ function BusinessActions({ b, approveMutation, rejectMutation, deleteMutation, s
 function MessagesTable() {
   const qc = useQueryClient()
   const [selectedMessage, setSelectedMessage] = useState(null)
+  const [deleteMessage, setDeleteMessage] = useState(null)
   const { data: messages, isLoading } = useQuery({
     queryKey: ['admin-messages'],
     queryFn: contactApi.listMessages
@@ -410,7 +475,7 @@ function MessagesTable() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr className="border-b border-gray-200">
-                    {['Date','From','Phone','Subject','Message','Status','Actions'].map(h => (
+                    {['Date', 'From', 'Phone', 'Subject', 'Message', 'Status', 'Actions'].map(h => (
                       <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -443,7 +508,7 @@ function MessagesTable() {
                               <CheckCircle size={14} />
                             </button>
                           )}
-                          <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this message?')) deleteMutation.mutate(m.id) }}
+                          <button disabled={deleteMutation.isPending} onClick={() => setDeleteMessage(m)}
                             className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition disabled:opacity-50">
                             <Trash2 size={14} />
                           </button>
@@ -489,7 +554,7 @@ function MessagesTable() {
                           <CheckCircle size={14} />
                         </button>
                       )}
-                      <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete?')) deleteMutation.mutate(m.id) }}
+                      <button disabled={deleteMutation.isPending} onClick={() => setDeleteMessage(m)}
                         className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition disabled:opacity-50">
                         <Trash2 size={14} />
                       </button>
@@ -566,7 +631,8 @@ function MessagesTable() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button disabled={deleteMutation.isPending}
-                  onClick={() => { if(confirm('Permanently delete?')) deleteMutation.mutate(selectedMessage.id, { onSuccess: () => setSelectedMessage(null) }) }}
+                  //onClick={() => { if (confirm('Permanently delete?')) deleteMutation.mutate(selectedMessage.id, { onSuccess: () => setSelectedMessage(null) }) }}
+                  onClick={() => setDeleteMessage(selectedMessage)}
                   className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3.5 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
                   <Trash2 size={16} /> Delete
                 </button>
@@ -579,6 +645,21 @@ function MessagesTable() {
           </div>
         </div>
       )}
+      <DeleteConfirmModal
+        open={!!deleteMessage}
+        loading={deleteMutation.isPending}
+        title="Delete Message"
+        description={`Delete message from "${deleteMessage?.name}" ?`}
+        onClose={() => setDeleteMessage(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(deleteMessage.id, {
+            onSuccess: () => {
+              setDeleteMessage(null)
+              setSelectedMessage(null)
+            }
+          })
+        }}
+      />
     </>
   )
 }
@@ -601,6 +682,7 @@ function CategoriesTable() {
   const qc = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCat, setEditingCat] = useState(null)
+  const [deleteCategory, setDeleteCategory] = useState(null)
   const [form, setForm] = useState({ name_en: '', name_ar: '', slug: '', icon: '', is_featured: false })
 
   const { data: cats, isLoading } = useQuery({ queryKey: ['admin-categories'], queryFn: () => categoryApi.list() })
@@ -640,7 +722,7 @@ function CategoriesTable() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
-                  {['Icon','Name','Slug','Businesses','Featured','Actions'].map(h => (
+                  {['Icon', 'Name', 'Slug', 'Businesses', 'Featured', 'Actions'].map(h => (
                     <th key={h} className="text-left font-bold text-gray-400 uppercase tracking-wide px-4 py-3 text-xs">{h}</th>
                   ))}
                 </tr>
@@ -661,7 +743,7 @@ function CategoriesTable() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button onClick={() => handleEdit(c)} className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors"><Edit2 size={14} /></button>
-                        <button onClick={() => { if(confirm(`Delete "${c.name_en}"?`)) deleteMutation.mutate(c.id) }} disabled={deleteMutation.isPending}
+                        <button onClick={() => setDeleteCategory(c)} disabled={deleteMutation.isPending}
                           className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center transition-colors">
                           {deleteMutation.isPending && deleteMutation.variables === c.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
                         </button>
@@ -701,14 +783,29 @@ function CategoriesTable() {
                   <button onClick={() => handleEdit(c)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500 text-xs font-bold transition-colors">
                     <Edit2 size={13} /> Edit
                   </button>
-                  <button onClick={() => { if(confirm(`Delete "${c.name_en}"?`)) deleteMutation.mutate(c.id) }} disabled={deleteMutation.isPending}
+                  <button onClick={() => setDeleteCategory(c)} disabled={deleteMutation.isPending}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 text-xs font-bold transition-colors">
                     <Trash2 size={13} /> Delete
                   </button>
                 </div>
               </div>
             ))}
+
           </div>
+          <DeleteConfirmModal
+            open={!!deleteCategory}
+            loading={deleteMutation.isPending}
+            title="Delete Category"
+            description={`Are you sure you want to delete "${deleteCategory?.name_en}" ?`}
+            onClose={() => setDeleteCategory(null)}
+            onConfirm={() => {
+              deleteMutation.mutate(deleteCategory.id, {
+                onSuccess: () => {
+                  setDeleteCategory(null)
+                }
+              })
+            }}
+          />
         </>
       )}
 
@@ -757,8 +854,9 @@ function CategoriesTable() {
 
 // ── Vendors Table ──────────────────────────────────────────────
 function VendorsTable({ onViewDashboard }) {
-  const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['admin-vendors'], queryFn: adminApi.listVendors })
+  const qc = useQueryClient();
+  const [deleteVendor, setDeleteVendor] = useState(null);
+  const { data, isLoading } = useQuery({ queryKey: ['admin-vendors'], queryFn: adminApi.listVendors });
 
   const deleteMutation = useMutation({
     mutationFn: adminApi.deleteVendor,
@@ -776,7 +874,7 @@ function VendorsTable({ onViewDashboard }) {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
-                  {['Email','Registered At','Actions'].map(h => (
+                  {['Email', 'Registered At', 'Actions'].map(h => (
                     <th key={h} className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -789,8 +887,11 @@ function VendorsTable({ onViewDashboard }) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button onClick={() => onViewDashboard(v)} className="w-8 h-8 rounded-lg bg-pink/10 text-pink hover:bg-pink hover:text-white flex items-center justify-center transition-colors"><LayoutDashboard size={14} /></button>
-                        <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this vendor account?')) deleteMutation.mutate(v.id) }}
-                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50">
+                        <button
+                          disabled={deleteMutation.isPending}
+                          onClick={() => setDeleteVendor(v)}
+                          className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 flex items-center justify-center transition-colors disabled:opacity-50"
+                        >
                           {deleteMutation.isPending && deleteMutation.variables === v.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={14} />}
                         </button>
                       </div>
@@ -813,8 +914,11 @@ function VendorsTable({ onViewDashboard }) {
                   <button onClick={() => onViewDashboard(v)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-pink/10 text-pink hover:bg-pink hover:text-white text-xs font-bold transition-colors">
                     <LayoutDashboard size={13} /> Dashboard
                   </button>
-                  <button disabled={deleteMutation.isPending} onClick={() => { if(confirm('Delete this vendor?')) deleteMutation.mutate(v.id) }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 text-xs font-bold transition-colors disabled:opacity-50">
+                  <button
+                    disabled={deleteMutation.isPending}
+                    onClick={() => setDeleteVendor(v)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 text-xs font-bold transition-colors disabled:opacity-50"
+                  >
                     <Trash2 size={13} /> Delete
                   </button>
                 </div>
@@ -823,6 +927,20 @@ function VendorsTable({ onViewDashboard }) {
           </div>
         </>
       )}
+      <DeleteConfirmModal
+        open={!!deleteVendor}
+        loading={deleteMutation.isPending}
+        title="Delete Vendor"
+        description={`Are you sure you want to delete "${deleteVendor?.email}" ?`}
+        onClose={() => setDeleteVendor(null)}
+        onConfirm={() => {
+          deleteMutation.mutate(deleteVendor.id, {
+            onSuccess: () => {
+              setDeleteVendor(null)
+            }
+          })
+        }}
+      />
     </div>
   )
 }
@@ -931,7 +1049,7 @@ function AdminDashboard() {
                   <StatCard icon="🏆" label="Featured" value={stats?.featured_businesses} sub="Sponsored listings" color="bg-pink-light" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[['📁','Categories',stats?.total_categories],['📍','Governorates',stats?.total_governorates],['✅','Verified',stats?.active_businesses]].map(([icon,label,val]) => (
+                  {[['📁', 'Categories', stats?.total_categories], ['📍', 'Governorates', stats?.total_governorates], ['✅', 'Verified', stats?.active_businesses]].map(([icon, label, val]) => (
                     <div key={label} className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
                       <span className="text-3xl">{icon}</span>
                       <div>
@@ -1012,11 +1130,14 @@ function VendorControlTable() {
   const [selectedServiceBiz, setSelectedServiceBiz] = useState(null)
   const [selectedEditBiz, setSelectedEditBiz] = useState(null)
   const [viewingVendor, setViewingVendor] = useState(null)
+  const [deleteVendorPopup, setDeleteVendorPopup] = useState(null)
+  const [deleteShopPopup, setDeleteShopPopup] = useState(null)
+
 
   const { data: shops, isLoading } = useQuery({ queryKey: ['admin-vendor-control'], queryFn: adminApi.vendorControl })
   const { data: allCategories } = useQuery({ queryKey: ['admin-categories-filter'], queryFn: categoryApi.list })
   const { data: allGovernorates } = useQuery({ queryKey: ['admin-govs-filter'], queryFn: governorateApi.list })
-  const qc = useQueryClient()
+  const qc = useQueryClient();
 
   const deleteVendorMutation = useMutation({
     mutationFn: adminApi.deleteVendor,
@@ -1139,10 +1260,10 @@ function VendorControlTable() {
               <span className="text-[10px] font-black text-amber-500">{filteredShops?.filter(s => s.status === 'pending').length} pending</span>
             </div>
             <button onClick={() => {
-              const csv = [['Shop Name','Category','Vendor','Status','Views','Rating'].join(','), ...filteredShops?.map(s => [s.name_en, s.category?.name_en, s.owner_email, s.status, s.view_count, s.rating_avg].join(','))].join('\n')
+              const csv = [['Shop Name', 'Category', 'Vendor', 'Status', 'Views', 'Rating'].join(','), ...filteredShops?.map(s => [s.name_en, s.category?.name_en, s.owner_email, s.status, s.view_count, s.rating_avg].join(','))].join('\n')
               const blob = new Blob([csv], { type: 'text/csv' })
               const url = window.URL.createObjectURL(blob)
-              const a = document.createElement('a'); a.setAttribute('hidden',''); a.setAttribute('href',url); a.setAttribute('download',`export-${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(a); a.click(); document.body.removeChild(a)
+              const a = document.createElement('a'); a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', `export-${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(a); a.click(); document.body.removeChild(a)
               toast.success('Exported to CSV')
             }} className="flex items-center gap-2 px-4 py-2 bg-ink text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all">
               <Download size={13} /> Export
@@ -1186,7 +1307,7 @@ function VendorControlTable() {
               <div className="flex items-center gap-2">
                 {data.items.some(s => s.status === 'pending') && (
                   <button disabled={updateBusinessStatusMutation.isPending}
-                    onClick={() => { if(confirm(`Approve all pending shops for ${data.email}?`)) data.items.filter(s => s.status === 'pending').forEach(s => updateBusinessStatusMutation.mutate({ id: s.id, status: 'active' })) }}
+                    onClick={() => { if (confirm(`Approve all pending shops for ${data.email}?`)) data.items.filter(s => s.status === 'pending').forEach(s => updateBusinessStatusMutation.mutate({ id: s.id, status: 'active' })) }}
                     className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all border border-emerald-100">
                     {updateBusinessStatusMutation.isPending ? <Spinner className="w-4 h-4" /> : <CheckCircle size={17} />}
                   </button>
@@ -1197,7 +1318,7 @@ function VendorControlTable() {
                   {toggleVendorStatusMutation.isPending && toggleVendorStatusMutation.variables?.id === data.owner?.id ? <Spinner className="w-4 h-4" /> : <ShieldAlert size={17} />}
                 </button>
                 <button disabled={deleteVendorMutation.isPending}
-                  onClick={() => { if(confirm(`Purge account ${data.email}?`)) deleteVendorMutation.mutate(data.owner.id) }}
+                  onClick={() => setDeleteVendorPopup(data)}
                   className="w-9 h-9 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all border border-red-100">
                   {deleteVendorMutation.isPending && deleteVendorMutation.variables === data.owner?.id ? <Spinner className="w-4 h-4" /> : <Trash2 size={17} />}
                 </button>
@@ -1256,7 +1377,7 @@ function VendorControlTable() {
                     <span className="text-[8px] font-black uppercase">View</span>
                   </a>
                   <button disabled={deleteBusinessMutation.isPending}
-                    onClick={() => { if(confirm(`Delete "${shop.name_en}"?`)) deleteBusinessMutation.mutate(shop.id) }}
+                    onClick={() => setDeleteShopPopup(shop)}
                     className="flex flex-col items-center gap-1 p-2 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all">
                     {deleteBusinessMutation.isPending && deleteBusinessMutation.variables === shop.id ? <Spinner className="w-3 h-3" /> : <Trash2 size={13} />}
                     <span className="text-[8px] font-black uppercase">Del</span>
@@ -1278,6 +1399,35 @@ function VendorControlTable() {
       {selectedApptBiz && <AdminAppointmentModal business={selectedApptBiz} onClose={() => setSelectedApptBiz(null)} />}
       {selectedServiceBiz && <AdminServiceModal business={selectedServiceBiz} onClose={() => setSelectedServiceBiz(null)} />}
       {selectedEditBiz && <AdminEditShopModal business={selectedEditBiz} onClose={() => setSelectedEditBiz(null)} />}
+      <DeleteConfirmModal
+        open={!!deleteVendorPopup}
+        loading={deleteVendorMutation.isPending}
+        title="Delete Vendor"
+        description={`Purge account "${deleteVendorPopup?.email}" ?`}
+        onClose={() => setDeleteVendorPopup(null)}
+        onConfirm={() => {
+          deleteVendorMutation.mutate(deleteVendorPopup.owner.id, {
+            onSuccess: () => {
+              setDeleteVendorPopup(null)
+            }
+          })
+        }}
+      />
+
+      <DeleteConfirmModal
+        open={!!deleteShopPopup}
+        loading={deleteBusinessMutation.isPending}
+        title="Delete Shop"
+        description={`Delete "${deleteShopPopup?.name_en}" ?`}
+        onClose={() => setDeleteShopPopup(null)}
+        onConfirm={() => {
+          deleteBusinessMutation.mutate(deleteShopPopup.id, {
+            onSuccess: () => {
+              setDeleteShopPopup(null)
+            }
+          })
+        }}
+      />
     </div>
   )
 }
@@ -1367,22 +1517,22 @@ function AdminEditShopModal({ business, onClose }) {
               <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2"><Building2 size={13} /> Core Info</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (EN)</label>
-                  <input value={form.name_en} onChange={e => setForm({...form, name_en: e.target.value})} className={inputCls} /></div>
+                  <input value={form.name_en} onChange={e => setForm({ ...form, name_en: e.target.value })} className={inputCls} /></div>
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Name (AR)</label>
-                  <input value={form.name_ar} onChange={e => setForm({...form, name_ar: e.target.value})} className={inputCls + " text-right"} dir="rtl" /></div>
+                  <input value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} className={inputCls + " text-right"} dir="rtl" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Category</label>
-                  <select value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})} className={selectCls}>
+                  <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className={selectCls}>
                     {categories?.map(c => <option key={c.id} value={c.id}>{c.name_en}</option>)}
                   </select></div>
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Governorate</label>
-                  <select value={form.governorate_id} onChange={e => setForm({...form, governorate_id: e.target.value})} className={selectCls}>
+                  <select value={form.governorate_id} onChange={e => setForm({ ...form, governorate_id: e.target.value })} className={selectCls}>
                     {governorates?.map(g => <option key={g.id} value={g.id}>{g.name_en}</option>)}
                   </select></div>
               </div>
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Short Description</label>
-                <textarea value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})} rows={2} className={inputCls + " resize-none"} /></div>
+                <textarea value={form.short_description} onChange={e => setForm({ ...form, short_description: e.target.value })} rows={2} className={inputCls + " resize-none"} /></div>
             </div>
 
             <div className="space-y-4 bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-200">
@@ -1403,7 +1553,7 @@ function AdminEditShopModal({ business, onClose }) {
                 {form.gallery_urls.map((url, i) => (
                   <div key={i} className="relative aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 group">
                     <img src={getImageUrl(url)} className="w-full h-full object-cover" />
-                    <button onClick={() => setForm({...form, gallery_urls: form.gallery_urls.filter((_,idx) => idx !== i)})} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><X size={10} /></button>
+                    <button onClick={() => setForm({ ...form, gallery_urls: form.gallery_urls.filter((_, idx) => idx !== i) })} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><X size={10} /></button>
                   </div>
                 ))}
                 <div className="relative aspect-square bg-white rounded-lg border border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-amber-400 transition-colors">
@@ -1423,14 +1573,14 @@ function AdminEditShopModal({ business, onClose }) {
                   <div className="flex items-center gap-2">
                     {!h.closed ? (
                       <>
-                        <input type="time" value={h.open} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, open: e.target.value}}})}
+                        <input type="time" value={h.open} onChange={e => setForm({ ...form, business_hours: { ...form.business_hours, [day]: { ...h, open: e.target.value } } })}
                           className="text-[10px] font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-pink focus:ring-1 focus:ring-pink/10" />
                         <span className="text-gray-300 text-xs">→</span>
-                        <input type="time" value={h.close} onChange={e => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, close: e.target.value}}})}
+                        <input type="time" value={h.close} onChange={e => setForm({ ...form, business_hours: { ...form.business_hours, [day]: { ...h, close: e.target.value } } })}
                           className="text-[10px] font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-pink focus:ring-1 focus:ring-pink/10" />
                       </>
                     ) : <span className="text-[10px] font-black text-red-400/60 uppercase mr-2">Closed</span>}
-                    <button onClick={() => setForm({...form, business_hours: {...form.business_hours, [day]: {...h, closed: !h.closed}}})}
+                    <button onClick={() => setForm({ ...form, business_hours: { ...form.business_hours, [day]: { ...h, closed: !h.closed } } })}
                       className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${h.closed ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-500 border border-red-100'}`}>
                       {h.closed ? 'Open' : 'Close'}
                     </button>
@@ -1556,12 +1706,12 @@ function AdminServiceModal({ business, onClose }) {
             <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Add New Service</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Title</label>
-                <input placeholder="Ex: Haircut" value={newS.name} onChange={e => setNewS({...newS, name: e.target.value})} className={inputCls} required /></div>
+                <input placeholder="Ex: Haircut" value={newS.name} onChange={e => setNewS({ ...newS, name: e.target.value })} className={inputCls} required /></div>
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Price</label>
-                <input placeholder="Ex: 15 OMR" value={newS.price} onChange={e => setNewS({...newS, price: e.target.value})} className={inputCls} /></div>
+                <input placeholder="Ex: 15 OMR" value={newS.price} onChange={e => setNewS({ ...newS, price: e.target.value })} className={inputCls} /></div>
             </div>
             <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Description</label>
-              <input placeholder="What does this service involve?" value={newS.description} onChange={e => setNewS({...newS, description: e.target.value})} className={inputCls} /></div>
+              <input placeholder="What does this service involve?" value={newS.description} onChange={e => setNewS({ ...newS, description: e.target.value })} className={inputCls} /></div>
             <button type="submit" className="w-full py-3 bg-ink text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-purple-600 transition-all flex items-center justify-center gap-2">
               Add Service <Zap size={13} />
             </button>

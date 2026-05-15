@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { categoryApi } from '@/lib/api'
 
 const ICONS = { restaurants: Utensils, repairing: Wrench, beauty: Sparkles, health: HeartPulse, technical: Monitor, moving: Package }
-const COLORS = ['#FCE8F1','#DBEAFE','#FEF3C7','#D1FAE5','#EDE5F7','#CFFAFE','#FEF0EA','#E0E7FF']
+const COLORS = ['#FCE8F1', '#DBEAFE', '#FEF3C7', '#D1FAE5', '#EDE5F7', '#CFFAFE', '#FEF0EA', '#E0E7FF']
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -15,12 +15,23 @@ export default function Navbar() {
   const [catOpen, setCatOpen] = useState(false)
   const [hoveredCat, setHoveredCat] = useState(null)
   const [hoveredSubCat, setHoveredSubCat] = useState(null)
-  
+
   const navRef = useRef(null)
   const timerRef = useRef(null)
   const { user, isAdmin, isVendor, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const [customerUser, setCustomerUser] = useState(() => {
+    const stored = localStorage.getItem('customerUser')
+    return stored ? JSON.parse(stored) : null
+  })
+
+  const handleCustomerLogout = () => {
+    localStorage.removeItem('customerUser')
+    setCustomerUser(null)
+    navigate('/')
+  }
 
   // Close menus on route change
   useEffect(() => {
@@ -67,9 +78,8 @@ export default function Navbar() {
 
   return (
     <div onMouseLeave={closeMenu}>
-      <nav ref={navRef} className={`h-[64px] flex items-center transition-all duration-500 fixed top-0 left-0 right-0 z-[100] border-b ${
-        scrolled || catOpen ? 'bg-white/95 backdrop-blur-md shadow-sm border-[var(--line)]' : 'bg-white border-transparent'
-      }`}>
+      <nav ref={navRef} className={`h-[64px] flex items-center transition-all duration-500 fixed top-0 left-0 right-0 z-[100] border-b ${scrolled || catOpen ? 'bg-white/95 backdrop-blur-md shadow-sm border-[var(--line)]' : 'bg-white border-transparent'
+        }`}>
         <div className="flex items-center justify-between w-full max-w-[var(--max)] mx-auto max-md:px-[18px] px-[48px] h-full">
           <Link to="/" className="shrink-0 tr hover:opacity-80">
             <Logo theme="light" style={{ height: '32px' }} />
@@ -93,25 +103,50 @@ export default function Navbar() {
               <Link to="/vendor/login" className="text-[13px] font-bold text-[var(--mid)] hover:text-[var(--ink)] tr px-2">
                 Register as Professional
               </Link>
+
               {user ? (
+                // Vendor / Admin — My Account
+                <Link
+                  to={isAdmin ? "/admin" : (isVendor ? "/vendor/dashboard" : "/profile")}
+                  className="btn-pill-out bg-none border-[1.5px] border-[var(--line)] text-[var(--ink)] text-[13px] font-bold p-[7px_20px] rounded-full tr hover:border-[var(--ink)] hover:bg-[var(--bg)] flex items-center gap-2"
+                >
+                  <User size={14} /> My Account
+                </Link>
+              ) : !customerUser && (
+                // Not logged in — Log in button
+                <Link to="/customer/login" className="btn-pill-out bg-none border-[var(--line)] border text-[var(--ink)] text-[13px] font-bold p-[8px_20px] rounded-full tr hover:border-[var(--ink)]">
+                  Log in
+                </Link>
+              )}
+
+              {/* ✅ List Business — always visible */}
+              <Link to="/list-business" className="btn-pill bg-[var(--ink)] text-white text-[13px] font-bold p-[9px_22px] rounded-full tr hover:opacity-85 shadow-lg shadow-black/5">
+                List Business
+              </Link>
+
+              {/* ✅ Vendor/Admin Logout — after List Business */}
+              {user && (
+                <button onClick={logout} className="text-[13px] font-bold text-[var(--ink)] tr hover:text-[var(--brand)]">
+                  Logout
+                </button>
+              )}
+
+              {/* ✅ Customer Name + Logout — after List Business */}
+              {customerUser && (
                 <div className="flex items-center gap-3">
-                  <Link to={isAdmin ? "/admin" : (isVendor ? "/vendor/dashboard" : "/profile")}
-                    className="btn-pill-out bg-none border-[1.5px] border-[var(--line)] text-[var(--ink)] text-[13px] font-bold p-[7px_20px] rounded-full tr hover:border-[var(--ink)] hover:bg-[var(--bg)] flex items-center gap-2">
-                    <User size={14} /> My Account
-                  </Link>
-                  <button onClick={logout} className="text-[13px] font-bold text-[var(--ink)] tr hover:text-[var(--brand)]">Logout</button>
+                  <span className="text-[13px] font-bold text-[var(--ink)] flex items-center gap-2">
+                    <User size={14} /> {customerUser.name}
+                  </span>
+                  <button
+                    onClick={handleCustomerLogout}
+                    className="text-[13px] font-bold text-white bg-red-400 px-4 py-1.5 rounded-full tr hover:bg-red-500 transition-all"
+                  >
+                    Logout
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <Link to="/admin/login" className="btn-pill-out bg-none border-[var(--line)] border text-[var(--ink)] text-[13px] font-bold p-[8px_20px] rounded-full tr hover:border-[var(--ink)]">
-                    Log in
-                  </Link>
-                  <Link to="/list-business" className="btn-pill bg-[var(--ink)] text-white text-[13px] font-bold p-[9px_22px] rounded-full tr hover:opacity-85 shadow-lg shadow-black/5">
-                    List Business
-                  </Link>
-                </>
               )}
             </div>
+
             <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 tr text-gray-600">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -120,10 +155,9 @@ export default function Navbar() {
       </nav>
 
       {/* Apple-style Full Width Dropdown */}
-      <div 
-        className={`fixed top-[64px] left-0 right-0 z-[90] bg-white border-b border-gray-100 shadow-2xl transition-all duration-300 origin-top flex overflow-hidden ${
-          catOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed top-[64px] left-0 right-0 z-[90] bg-white border-b border-gray-100 shadow-2xl transition-all duration-300 origin-top flex overflow-hidden ${catOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'
+          }`}
         onMouseEnter={openMenu}
         style={{ height: '440px' }}
       >
@@ -136,12 +170,11 @@ export default function Navbar() {
                 const Icon = ICONS[cat.slug] || Briefcase
                 const isActive = hoveredCat?.id === cat.id
                 return (
-                  <div 
-                    key={cat.id} 
+                  <div
+                    key={cat.id}
                     onMouseEnter={() => { setHoveredCat(cat); setHoveredSubCat(null); }}
-                    className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors duration-200 ${
-                      isActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
-                    }`}
+                    className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors duration-200 ${isActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS[i % COLORS.length] }}>
@@ -171,18 +204,17 @@ export default function Navbar() {
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-4 h-[15px]">
                   {hoveredCat ? `Explore ${hoveredCat.name_en}` : ' '}
                 </h3>
-                
+
                 <div className="flex flex-col gap-1 overflow-y-auto pb-4 custom-scrollbar -ml-2 -mr-2 px-2">
                   {subCategories.map(sub => {
                     const isSubActive = hoveredSubCat?.id === sub.id
                     return (
-                      <div 
-                        key={sub.id} 
+                      <div
+                        key={sub.id}
                         onMouseEnter={() => setHoveredSubCat(sub)}
                         onClick={() => !sub.has_children && navigate(`/businesses?category=${sub.slug}`)}
-                        className={`group flex items-center justify-between p-2.5 rounded-xl transition-colors cursor-pointer ${
-                          isSubActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
-                        }`}
+                        className={`group flex items-center justify-between p-2.5 rounded-xl transition-colors cursor-pointer ${isSubActive ? 'bg-gray-50' : 'hover:bg-gray-50/50'
+                          }`}
                       >
                         <div>
                           <h4 className={`text-[13px] font-bold transition-colors mb-0.5 ${isSubActive ? 'text-[var(--brand)]' : 'text-gray-800'}`}>{sub.name_en}</h4>
@@ -213,8 +245,8 @@ export default function Navbar() {
                 ) : childCategories.length > 0 ? (
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6 overflow-y-auto pb-4 custom-scrollbar content-start">
                     {childCategories.map(child => (
-                      <Link 
-                        key={child.id} 
+                      <Link
+                        key={child.id}
                         to={`/businesses?category=${child.slug}`}
                         onClick={() => setCatOpen(false)}
                         className="group flex flex-col p-3 rounded-xl hover:bg-gray-50 transition-colors"
@@ -231,7 +263,7 @@ export default function Navbar() {
                     </div>
                     <h4 className="text-[14px] font-bold text-gray-900 mb-1">Explore {hoveredSubCat.name_en}</h4>
                     <p className="text-[12px] text-gray-400 max-w-[200px] mb-4">{hoveredSubCat.business_count || 0} businesses available</p>
-                    <Link 
+                    <Link
                       to={`/businesses?category=${hoveredSubCat.slug}`}
                       onClick={() => setCatOpen(false)}
                       className="px-6 py-2 bg-[var(--brand)] text-white rounded-full text-[13px] font-bold hover:opacity-90 transition-opacity"
@@ -248,7 +280,7 @@ export default function Navbar() {
                 <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg)] to-white opacity-60"></div>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-pink-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3"></div>
-                
+
                 <div className="relative z-10 flex flex-col items-center text-center p-8">
                   <div className="w-20 h-20 bg-white shadow-xl shadow-black/5 rounded-[24px] flex items-center justify-center mb-6 rotate-3 hover:rotate-0 transition-transform duration-300">
                     <Sparkles size={32} className="text-[var(--brand)]" />
@@ -259,7 +291,7 @@ export default function Navbar() {
                   <p className="text-[15px] font-medium text-gray-500 max-w-[340px] mb-8 leading-relaxed">
                     Discover top-rated businesses, exclusive deals, and premium services in Oman.
                   </p>
-                  <Link 
+                  <Link
                     to={`/businesses?category=${hoveredCat.slug}`}
                     onClick={() => setCatOpen(false)}
                     className="px-8 py-3.5 bg-[var(--ink)] text-white rounded-full text-[14px] font-bold hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/20 transition-all flex items-center gap-2"
@@ -277,12 +309,26 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden fixed top-[64px] left-0 right-0 bg-white border-b border-gray-100 shadow-xl p-4 flex flex-col gap-2 z-[90]">
-          {[['Categories','/categories'],['Directory','/governorates'],['Businesses','/businesses'],['Contact','/contact']].map(([label, to]) => (
+          {[['Categories', '/categories'], ['Directory', '/governorates'], ['Businesses', '/businesses'], ['Contact', '/contact']].map(([label, to]) => (
             <Link key={to} to={to} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl">{label}</Link>
           ))}
           <div className="border-t border-gray-100 pt-2 mt-1 flex flex-col gap-2">
             <Link to="/vendor/login" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl">Register as Professional</Link>
-            <Link to="/admin/login" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl">Log in</Link>
+            {customerUser ? (
+              <>
+                <span className="px-3 py-2.5 text-sm font-bold text-gray-700">👤 {customerUser.name}</span>
+                <button
+                  onClick={handleCustomerLogout}
+                  className="px-3 py-2.5 text-sm font-bold text-red-500 hover:bg-gray-50 rounded-xl text-left"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link to="/customer/login" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl">
+                Log in
+              </Link>
+            )}
             <Link to="/list-business" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm font-bold text-center text-white bg-gray-900 rounded-xl">List Business</Link>
           </div>
         </div>

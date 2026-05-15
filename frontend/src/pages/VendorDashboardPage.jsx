@@ -6,13 +6,13 @@ import { businessApi, reviewApi, serviceApi, bookingApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
 import { Spinner } from '@/components/ui'
 import toast from 'react-hot-toast'
-import { 
-  History, 
-  LayoutDashboard, 
-  Building2, 
-  Star, 
-  LogOut, 
-  Settings, 
+import {
+  History,
+  LayoutDashboard,
+  Building2,
+  Star,
+  LogOut,
+  Settings,
   PlusCircle,
   Clock,
   CheckCircle,
@@ -35,6 +35,7 @@ import {
   Eye,
   MessageSquare
 } from 'lucide-react'
+import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 
 export default function VendorDashboardPage() {
   const { vendor, vendorLogout } = useAuth()
@@ -89,7 +90,7 @@ export default function VendorDashboardPage() {
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
           onClick={() => setSidebarOpen(false)}
         />
@@ -129,17 +130,16 @@ export default function VendorDashboardPage() {
               key={tab.name}
               to={tab.path}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                location.pathname === tab.path
-                  ? 'bg-pink text-white shadow-lg shadow-pink/20'
-                  : 'text-gray-400 hover:bg-gray-50 hover:text-ink'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${location.pathname === tab.path
+                ? 'bg-pink text-white shadow-lg shadow-pink/20'
+                : 'text-gray-400 hover:bg-gray-50 hover:text-ink'
+                }`}
             >
               <tab.icon size={18} />
               {tab.name}
             </Link>
           ))}
-          
+
           <button
             onClick={vendorLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50/50 transition-all mt-8"
@@ -300,7 +300,7 @@ function MyShops() {
           <StatusBadge status={shop.status} />
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between pt-2 border-t border-gray-200">
         <div className="flex gap-4">
           <div>
@@ -352,7 +352,7 @@ function MyShops() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden">
-                       {shop.logo_url ? <img src={shop.logo_url} className="w-full h-full object-cover" /> : <Building2 size={18} className="text-gray-200" />}
+                      {shop.logo_url ? <img src={shop.logo_url} className="w-full h-full object-cover" /> : <Building2 size={18} className="text-gray-200" />}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-ink">{shop.name_en}</p>
@@ -456,9 +456,9 @@ function VendorServices() {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [newService, setNewService] = useState({ name: '', description: '', price: '' })
-
+  const [deleteService, setDeleteService] = useState(null)
   const { data: shops } = useQuery({ queryKey: ['vendor-shops'], queryFn: () => businessApi.me() })
-  
+
   const { data: services, refetch, isLoading } = useQuery({
     queryKey: ['services', selectedShopId],
     queryFn: () => serviceApi.listByBusiness(selectedShopId),
@@ -476,21 +476,23 @@ function VendorServices() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this service?')) return
     try {
       await serviceApi.delete(id)
       refetch()
-    } catch (e) { toast.error(getErrorMessage(e)) }
+      setDeleteService(null)
+      toast.success('Service deleted')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    }
   }
-
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-gray-200 shadow-sm">
         <h2 className="text-base md:text-lg font-bold text-ink mb-4 md:mb-6">Service Management</h2>
         <div className="max-w-md">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Select Shop to Manage</label>
-          <select 
-            value={selectedShopId || ''} 
+          <select
+            value={selectedShopId || ''}
             onChange={(e) => setSelectedShopId(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all font-semibold bg-white text-gray-700"
           >
@@ -504,7 +506,7 @@ function VendorServices() {
         <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-gray-200 shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
             <h3 className="font-bold text-ink">Active Services</h3>
-            <button 
+            <button
               onClick={() => setIsAdding(true)}
               className="bg-pink text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 w-full sm:w-auto justify-center hover:bg-pink/90 transition-colors"
             >
@@ -516,24 +518,24 @@ function VendorServices() {
             {isAdding && (
               <form onSubmit={handleAdd} className="p-4 md:p-6 border-2 border-dashed border-pink/30 rounded-2xl bg-pink/5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                  <input 
-                    placeholder="Service Name" 
+                  <input
+                    placeholder="Service Name"
                     required
-                    value={newService.name} 
-                    onChange={e => setNewService({...newService, name: e.target.value})}
-                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400" 
+                    value={newService.name}
+                    onChange={e => setNewService({ ...newService, name: e.target.value })}
+                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400"
                   />
-                  <input 
-                    placeholder="Price (e.g. 5 OMR)" 
-                    value={newService.price} 
-                    onChange={e => setNewService({...newService, price: e.target.value})}
-                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400" 
+                  <input
+                    placeholder="Price (e.g. 5 OMR)"
+                    value={newService.price}
+                    onChange={e => setNewService({ ...newService, price: e.target.value })}
+                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400"
                   />
-                  <input 
-                    placeholder="Description (Optional)" 
-                    value={newService.description} 
-                    onChange={e => setNewService({...newService, description: e.target.value})}
-                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400" 
+                  <input
+                    placeholder="Description (Optional)"
+                    value={newService.description}
+                    onChange={e => setNewService({ ...newService, description: e.target.value })}
+                    className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-pink focus:ring-2 focus:ring-pink/20 transition-all bg-white text-gray-700 placeholder:text-gray-400"
                   />
                 </div>
                 <div className="flex justify-end gap-3">
@@ -558,7 +560,7 @@ function VendorServices() {
                       <p className="text-[11px] text-gray-500 font-semibold">{service.description || 'No description'} • <span className="text-pink font-bold">{service.price || 'Price on request'}</span></p>
                     </div>
                     <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDelete(service.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                      <button onClick={() => setDeleteService(service)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -569,6 +571,13 @@ function VendorServices() {
           </div>
         </div>
       )}
+      <DeleteConfirmModal
+        open={!!deleteService}
+        title="Delete Service"
+        description={`Delete "${deleteService?.name}" service?`}
+        onClose={() => setDeleteService(null)}
+        onConfirm={() => handleDelete(deleteService.id)}
+      />
     </div>
   )
 }
@@ -624,15 +633,14 @@ function VendorAppointments() {
             <p className="text-[11px] text-gray-500 font-bold">{booking.phone}</p>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-          booking.status === 'confirmed' ? 'bg-green-100 text-green-700 border border-green-200' :
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700 border border-green-200' :
           booking.status === 'cancelled' ? 'bg-red-100 text-red-700 border border-red-200' :
-          'bg-amber-100 text-amber-700 border border-amber-200'
-        }`}>
+            'bg-amber-100 text-amber-700 border border-amber-200'
+          }`}>
           {booking.status}
         </span>
       </div>
-      
+
       <div className="space-y-2 pt-2 border-t border-gray-200">
         <div>
           <p className="text-xs font-bold text-ink">{booking.service || 'General Service'}</p>
@@ -646,13 +654,13 @@ function VendorAppointments() {
 
       {booking.status === 'pending' && (
         <div className="flex items-center gap-2 pt-2">
-          <button 
+          <button
             onClick={() => updateStatus(booking.id, 'confirmed')}
             className="flex-1 py-2 flex items-center justify-center gap-2 text-green-700 bg-green-100 hover:bg-green-200 rounded-xl transition-all duration-300 text-xs font-bold border border-green-200"
           >
             <CheckCircle size={14} /> Confirm
           </button>
-          <button 
+          <button
             onClick={() => updateStatus(booking.id, 'cancelled')}
             className="flex-1 py-2 flex items-center justify-center gap-2 text-red-700 bg-red-100 hover:bg-red-200 rounded-xl transition-all duration-300 text-xs font-bold border border-red-200"
           >
@@ -707,23 +715,22 @@ function VendorAppointments() {
                   <p className="text-[11px] text-gray-500 font-bold">{booking.time}</p>
                 </td>
                 <td className="px-8 py-6">
-                   <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                     booking.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
-                     booking.status === 'cancelled' ? 'bg-red-100 text-red-700 border-red-200' :
-                     'bg-amber-100 text-amber-700 border-amber-200'
-                   }`}>
-                     {booking.status}
-                   </span>
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200' :
+                    booking.status === 'cancelled' ? 'bg-red-100 text-red-700 border-red-200' :
+                      'bg-amber-100 text-amber-700 border-amber-200'
+                    }`}>
+                    {booking.status}
+                  </span>
                 </td>
                 <td className="px-8 py-6 text-right">
                   {booking.status === 'pending' && (
                     <div className="flex items-center justify-end gap-3">
-                      <button 
+                      <button
                         onClick={() => updateStatus(booking.id, 'confirmed')}
                         className="w-10 h-10 flex items-center justify-center text-green-700 bg-green-100 hover:bg-green-200 rounded-xl transition-all duration-300 shadow-sm border border-green-200" title="Confirm Booking">
                         <CheckCircle size={20} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => updateStatus(booking.id, 'cancelled')}
                         className="w-10 h-10 flex items-center justify-center text-red-700 bg-red-100 hover:bg-red-200 rounded-xl transition-all duration-300 shadow-sm border border-red-200" title="Cancel Booking">
                         <XCircle size={20} />
